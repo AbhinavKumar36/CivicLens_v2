@@ -141,6 +141,23 @@ export function ReportIssue() {
     if (!reportData) return
     setIsSubmitting(true)
     try {
+      let lat = 20.2835;
+      let lng = 85.7697;
+      const lower = (reportData.summary || "").toLowerCase();
+      if (lower.includes("bhouma") || lower.includes("unit 4") || lower.includes("unit-4")) {
+        lat = 20.2785; lng = 85.8324;
+      } else if (lower.includes("saheed")) {
+        lat = 20.2882; lng = 85.8501;
+      } else if (lower.includes("rasulgarh")) {
+        lat = 20.2961; lng = 85.8712;
+      } else if (lower.includes("nayapalli") || lower.includes("irc")) {
+        lat = 20.3015; lng = 85.8152;
+      } else if (lower.includes("patia") || lower.includes("kiit")) {
+        lat = 20.3541; lng = 85.8175;
+      } else if (lower.includes("sum") || lower.includes("khandagiri") || lower.includes("nh 16") || lower.includes("nh-16")) {
+        lat = 20.2835; lng = 85.7697;
+      }
+
       const response = await api.createComplaint({
         category: reportData.category,
         priority: reportData.priority,
@@ -150,8 +167,8 @@ export function ReportIssue() {
         estimated_resolution_time: reportData.estimated_resolution_time,
         user_id: isAnonymous ? null : (user?.id || 1),
         department_id: 1,
-        latitude: 20.2785, // Default Bhouma Nagar hotspot center
-        longitude: 85.8324,
+        latitude: lat,
+        longitude: lng,
         image_url: reportData.image || null,
       })
 
@@ -178,25 +195,28 @@ export function ReportIssue() {
   const handleManualSubmit = async (data: { category: string; severity: string; description: string; location: string; image: string | null }) => {
     setIsSubmitting(true)
     try {
-      let lat = 20.2785;
-      let lng = 85.8324;
+      let lat = 20.2835;
+      let lng = 85.7697;
 
+      const locText = (data.location + " " + data.description).toLowerCase();
       if (data.location) {
         const coordMatch = data.location.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
         if (coordMatch) {
           lat = parseFloat(coordMatch[1]);
           lng = parseFloat(coordMatch[2]);
-        } else if (data.location.includes('23') || data.location.toLowerCase().includes('bhouma')) {
+        } else if (locText.includes('sum') || locText.includes('khandagiri') || locText.includes('nh 16') || locText.includes('nh-16')) {
+          lat = 20.2835; lng = 85.7697;
+        } else if (locText.includes('23') || locText.includes('bhouma') || locText.includes('unit 4')) {
           lat = 20.2785; lng = 85.8324;
-        } else if (data.location.includes('24') || data.location.toLowerCase().includes('saheed')) {
+        } else if (locText.includes('24') || locText.includes('saheed')) {
           lat = 20.2882; lng = 85.8501;
-        } else if (data.location.includes('35') || data.location.toLowerCase().includes('rasulgarh')) {
+        } else if (locText.includes('35') || locText.includes('rasulgarh')) {
           lat = 20.2961; lng = 85.8712;
-        } else if (data.location.includes('42') || data.location.toLowerCase().includes('nayapalli')) {
+        } else if (locText.includes('42') || locText.includes('nayapalli')) {
           lat = 20.3015; lng = 85.8152;
-        } else if (data.location.includes('12') || data.location.toLowerCase().includes('chandrasekharpur')) {
+        } else if (locText.includes('12') || locText.includes('chandrasekharpur') || locText.includes('patia')) {
           lat = 20.3245; lng = 85.8182;
-        } else if (data.location.includes('31') || data.location.toLowerCase().includes('old town')) {
+        } else if (locText.includes('31') || locText.includes('old town')) {
           lat = 20.2421; lng = 85.8354;
         }
       }

@@ -1286,6 +1286,39 @@ app.post('/api/complaints', (req, res) => {
       assignedWorkerId = firstWorker ? firstWorker.id : null;
     }
 
+    // Smart Geolocation Resolver for Bhubaneswar Municipal Corporation
+    let finalLat = latitude ? Number(latitude) : null;
+    let finalLng = longitude ? Number(longitude) : null;
+    const lowerSummary = (summary || '').toLowerCase();
+
+    if (!finalLat || !finalLng || (Math.abs(finalLat - 20.2785) < 0.001 && Math.abs(finalLng - 85.8324) < 0.001 && !lowerSummary.includes('bhouma'))) {
+      if (lowerSummary.includes('sum hospital') || lowerSummary.includes('sum') || lowerSummary.includes('nh 16') || lowerSummary.includes('khandagiri')) {
+        finalLat = 20.2835;
+        finalLng = 85.7697;
+      } else if (lowerSummary.includes('patia') || lowerSummary.includes('kiit')) {
+        finalLat = 20.3541;
+        finalLng = 85.8175;
+      } else if (lowerSummary.includes('nayapalli') || lowerSummary.includes('irc')) {
+        finalLat = 20.3015;
+        finalLng = 85.8152;
+      } else if (lowerSummary.includes('saheed nagar')) {
+        finalLat = 20.2882;
+        finalLng = 85.8501;
+      } else if (lowerSummary.includes('rasulgarh')) {
+        finalLat = 20.2961;
+        finalLng = 85.8712;
+      } else if (lowerSummary.includes('old town') || lowerSummary.includes('lingaraj')) {
+        finalLat = 20.2421;
+        finalLng = 85.8354;
+      } else if (lowerSummary.includes('baramunda')) {
+        finalLat = 20.2742;
+        finalLng = 85.7952;
+      } else if (!finalLat) {
+        finalLat = 20.2835;
+        finalLng = 85.7697;
+      }
+    }
+
     const insert = db.prepare(`
       INSERT INTO complaints (category, priority, severity, summary, status, department, estimated_resolution_time, worker_id, latitude, longitude, image_url, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1294,7 +1327,7 @@ app.post('/api/complaints', (req, res) => {
     const result = insert.run(
       category, priority || 'Low', severity || 'Minor', summary, 'Pending',
       department || 'General', estimated_resolution_time || 'Unknown', assignedWorkerId,
-      latitude || null, longitude || null, image_url || null, new Date().toISOString()
+      finalLat, finalLng, image_url || null, new Date().toISOString()
     );
 
     const newComplaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(result.lastInsertRowid);

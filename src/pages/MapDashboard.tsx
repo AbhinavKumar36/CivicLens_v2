@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/services/api"
 import { planningApi, type DevelopmentProposal, type DemandHotspot, type NormalizedDemand } from "@/services/planningService"
 import { motion, AnimatePresence } from "framer-motion"
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Circle, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Circle, Tooltip, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { GlassPanel } from "@/components/ui/GlassPanel"
@@ -76,6 +76,37 @@ const createProposalIcon = (category: string, score: number, isFunded = true) =>
     `,
     iconSize: [120, 36],
     iconAnchor: [60, 18]
+  });
+};
+
+const createIncidentHotspotIcon = (category: string, complaintId?: number, isSelected = false) => {
+  const cat = (category || "").toLowerCase();
+  const isEnv = cat.includes("env") || cat.includes("tree") || cat.includes("park");
+  const icon = isEnv ? "park" : cat.includes("drain") ? "waves" : cat.includes("road") ? "construction" : "report_problem";
+  const bg = isEnv ? "bg-emerald-500" : "bg-primary";
+  const border = isEnv ? "border-emerald-400" : "border-primary";
+  const text = isEnv ? "text-emerald-400" : "text-primary";
+
+  return L.divIcon({
+    className: "custom-incident-marker",
+    html: `
+      <div class="relative flex flex-col items-center cursor-pointer group pointer-events-auto select-none" style="z-index: 1000;">
+        <!-- Glowing Floating Badge -->
+        <div class="mb-1 px-2 py-0.5 rounded-md bg-[#0b1329] border border-emerald-400/80 shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center gap-1 text-[10px] font-extrabold text-emerald-300 backdrop-blur-xl whitespace-nowrap ${isSelected ? 'scale-110' : ''} transition-transform">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>#UP-${complaintId || 'REPORT'}</span>
+        </div>
+        <!-- Pin Base with Ping Alert -->
+        <div class="relative">
+          <div class="absolute -inset-2 ${bg} rounded-full opacity-60 animate-ping"></div>
+          <div class="w-10 h-10 rounded-full bg-[#0b1329] border-2 ${border} flex items-center justify-center ${text} shadow-2xl">
+            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">${icon}</span>
+          </div>
+        </div>
+      </div>
+    `,
+    iconSize: [80, 70],
+    iconAnchor: [40, 55],
   });
 };
 
@@ -232,10 +263,18 @@ export function MapDashboard() {
                 key={`c-${c.id}`} 
                 position={pos} 
                 icon={createIcon(colorObj, type)}
+                zIndexOffset={500}
                 eventHandlers={{
                   click: () => setSelectedEntity({ type: "INCIDENT", data: c })
                 }}
-              />
+              >
+                <Tooltip direction="top" offset={[0, -22]} opacity={1}>
+                  <div className="font-sans px-2.5 py-1 bg-[#0b1329] border border-primary/40 rounded-xl text-foreground text-xs shadow-2xl flex items-center gap-1.5">
+                    <span className="font-bold text-primary">#UP-{c.id}</span>
+                    <span className="text-on-surface-variant font-medium max-w-[200px] truncate">{c.summary}</span>
+                  </div>
+                </Tooltip>
+              </Marker>
             );
           })}
 
@@ -261,6 +300,8 @@ export function MapDashboard() {
             const isEnv = cat.includes("ENV") || cat.includes("TREE") || cat.includes("PARK");
             const isWater = cat.includes("WATER");
             const isSanitation = cat.includes("SANIT");
+            const isComplaint = !!(h as any).complaintId;
+            const isSelected = selectedEntity?.data?.id === h.id || selectedEntity?.data?.complaintId === (h as any).complaintId;
             
             const circleColor = isDrainage ? "#3b82f6" : isEnv ? "#10b981" : isWater ? "#06b6d4" : isSanitation ? "#a855f7" : "#f97316";
             const strokeColor = isDrainage ? "#60a5fa" : isEnv ? "#34d399" : isWater ? "#22d3ee" : isSanitation ? "#c084fc" : "#fb923c";
@@ -277,16 +318,16 @@ export function MapDashboard() {
 
             return (
               <React.Fragment key={`h-${h.id}`}>
-                {/* Exact 100m Geographic Catchment Area */}
+                {/* Geographic Catchment Area */}
                 <Circle
                   center={[h.centerLat, h.centerLng]}
-                  radius={100}
+                  radius={isComplaint ? 150 : 100}
                   pathOptions={{
                     fillColor: circleColor,
-                    fillOpacity: 0.22,
+                    fillOpacity: isComplaint ? 0.35 : 0.22,
                     color: strokeColor,
-                    weight: 1.5,
-                    dashArray: "4, 4"
+                    weight: isComplaint ? 2.5 : 1.5,
+                    dashArray: isComplaint ? undefined : "4, 4"
                   }}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
@@ -294,12 +335,12 @@ export function MapDashboard() {
                 />
                 <CircleMarker
                   center={[h.centerLat, h.centerLng]}
-                  radius={16}
+                  radius={isComplaint ? 22 : 16}
                   pathOptions={{
                     fillColor: circleColor,
-                    fillOpacity: 0.38,
+                    fillOpacity: isComplaint ? 0.5 : 0.38,
                     color: strokeColor,
-                    weight: 2
+                    weight: isComplaint ? 2.5 : 2
                   }}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
@@ -307,11 +348,29 @@ export function MapDashboard() {
                 />
                 <Marker
                   position={[h.centerLat, h.centerLng]}
-                  icon={createIcon(iconBg, iconName)}
+                  icon={isComplaint ? createIncidentHotspotIcon(h.dominantCategory, (h as any).complaintId, isSelected) : createIcon(iconBg, iconName)}
+                  zIndexOffset={isComplaint ? 1000 : 100}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
                   }}
-                />
+                >
+                  <Tooltip
+                    direction="top"
+                    offset={[0, isComplaint ? -45 : -22]}
+                    opacity={1}
+                  >
+                    <div className="font-sans px-2.5 py-1 bg-[#0b1329] border border-foreground/20 rounded-xl text-foreground text-xs shadow-2xl flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        {isComplaint && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>}
+                        <span className="font-bold text-primary">{isComplaint ? `#UP-${(h as any).complaintId}` : h.wardId}</span>
+                        {!isComplaint && <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{h.dominantCategory}</span>}
+                      </div>
+                      <span className="text-[11px] text-on-surface-variant font-medium max-w-[210px] truncate">
+                        {(h as any).title || `${h.dominantCategory} Cluster • ${h.demandCount} Demands`}
+                      </span>
+                    </div>
+                  </Tooltip>
+                </Marker>
               </React.Fragment>
             );
           })}
