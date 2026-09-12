@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { Button } from "@/components/atoms/Button"
@@ -10,6 +10,7 @@ import { cn } from "@/utils/utils"
 import { api } from "@/services/api"
 import { ManualReportForm } from "@/components/organisms/ManualReportForm"
 import { useNotifications } from "@/contexts/NotificationContext"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface ReportData {
   category: string
@@ -23,7 +24,9 @@ interface ReportData {
 
 export function ReportIssue() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { addNotification } = useNotifications()
+  const queryClient = useQueryClient()
   
   const [reportMode, setReportMode] = useState<"history" | "manual" | "image">("history")
   
@@ -145,10 +148,24 @@ export function ReportIssue() {
         severity: reportData.severity,
         summary: reportData.summary,
         estimated_resolution_time: reportData.estimated_resolution_time,
-        user_id: isAnonymous ? null : 1, // Mock user ID for now
-        department_id: 1, // Default
+        user_id: isAnonymous ? null : (user?.id || 1),
+        department_id: 1,
+        latitude: 20.2785, // Default Bhouma Nagar hotspot center
+        longitude: 85.8324,
         image_url: reportData.image || null,
       })
+
+      queryClient.invalidateQueries({ queryKey: ['complaints'] })
+      queryClient.invalidateQueries({ queryKey: ['planning-demands'] })
+      queryClient.invalidateQueries({ queryKey: ['planning-hotspots'] })
+
+      addNotification({
+        title: "Real-Time Hotspot Marked!",
+        message: response.message || "Demand hotspot dynamically recomputed with 100m radius.",
+        type: "success",
+        group: "emergency"
+      })
+
       navigate(`/reports/${response.id}`)
     } catch (error) {
       console.error("Failed to submit report:", error)
@@ -161,6 +178,29 @@ export function ReportIssue() {
   const handleManualSubmit = async (data: { category: string; severity: string; description: string; location: string; image: string | null }) => {
     setIsSubmitting(true)
     try {
+      let lat = 20.2785;
+      let lng = 85.8324;
+
+      if (data.location) {
+        const coordMatch = data.location.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+        if (coordMatch) {
+          lat = parseFloat(coordMatch[1]);
+          lng = parseFloat(coordMatch[2]);
+        } else if (data.location.includes('23') || data.location.toLowerCase().includes('bhouma')) {
+          lat = 20.2785; lng = 85.8324;
+        } else if (data.location.includes('24') || data.location.toLowerCase().includes('saheed')) {
+          lat = 20.2882; lng = 85.8501;
+        } else if (data.location.includes('35') || data.location.toLowerCase().includes('rasulgarh')) {
+          lat = 20.2961; lng = 85.8712;
+        } else if (data.location.includes('42') || data.location.toLowerCase().includes('nayapalli')) {
+          lat = 20.3015; lng = 85.8152;
+        } else if (data.location.includes('12') || data.location.toLowerCase().includes('chandrasekharpur')) {
+          lat = 20.3245; lng = 85.8182;
+        } else if (data.location.includes('31') || data.location.toLowerCase().includes('old town')) {
+          lat = 20.2421; lng = 85.8354;
+        }
+      }
+
       const response = await api.createComplaint({
         category: data.category,
         priority: data.severity.charAt(0).toUpperCase() + data.severity.slice(1),
@@ -168,12 +208,24 @@ export function ReportIssue() {
         severity: data.severity.charAt(0).toUpperCase() + data.severity.slice(1),
         summary: data.description,
         estimated_resolution_time: data.severity === "critical" ? "24 Hours" : data.severity === "high" ? "48 Hours" : data.severity === "medium" ? "5 Business Days" : "10 Business Days",
-        user_id: isAnonymous ? null : 1,
+        user_id: isAnonymous ? null : (user?.id || 1),
         department_id: 1,
-        latitude: null,
-        longitude: null,
+        latitude: lat,
+        longitude: lng,
         image_url: data.image || null,
       })
+
+      queryClient.invalidateQueries({ queryKey: ['complaints'] })
+      queryClient.invalidateQueries({ queryKey: ['planning-demands'] })
+      queryClient.invalidateQueries({ queryKey: ['planning-hotspots'] })
+
+      addNotification({
+        title: "Real-Time Hotspot Marked!",
+        message: response.message || "Demand hotspot dynamically recomputed with 100m radius.",
+        type: "success",
+        group: "emergency"
+      })
+
       navigate(`/reports/${response.id}`)
     } catch (error) {
       console.error("Failed to submit manual report:", error)
@@ -439,6 +491,16 @@ export function ReportIssue() {
                       <Label className="text-primary block">Estimated Resolution Time</Label>
                       <BodyText className="text-on-surface-variant font-medium">{reportData.estimated_resolution_time}</BodyText>
                     </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-xl border border-primary/20 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-base">hub</span>
+                      <Label className="text-primary font-bold">Constituency Development Planning Link</Label>
+                    </div>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                      This submission automatically feeds the <strong>People's Priorities AI Normalization Pipeline</strong>, contributing to Ward-level demand recurrence, hotspot identification, and public infrastructure proposals.
+                    </p>
                   </div>
 
                   <div className="bg-surface-container-lowest/50 p-4 rounded-xl border border-foreground/5 flex items-center justify-between">

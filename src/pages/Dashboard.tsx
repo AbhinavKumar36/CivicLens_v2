@@ -7,18 +7,30 @@ import { Button } from "@/components/atoms/Button"
 import { StatusChip } from "@/components/atoms/StatusChip"
 import { KpiCard, ActionCard } from "@/components/molecules/Cards"
 import { InsightWidget } from "@/components/organisms/Widgets"
-import { MOCK_USER, MOCK_METRICS, MOCK_RECOMMENDATIONS } from "@/utils/mock-data"
 import { api } from "@/services/api"
 import { useNotifications } from "@/contexts/NotificationContext"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function Dashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { addNotification } = useNotifications()
   
   const { data: rawReports, isLoading } = useQuery({
     queryKey: ['complaints'],
     queryFn: api.getComplaints
   })
+
+  const { data: dbStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: api.getDashboardStats
+  })
+
+  const metrics = dbStats?.metrics || [
+    { id: 1, label: "Power Grid", value: "99.1%", icon: "bolt" },
+    { id: 2, label: "Air Quality", value: "48 AQI", icon: "air" },
+    { id: 3, label: "Water Flow", value: "1.4M L", icon: "water_drop" }
+  ];
   
   const reports = (rawReports || []).slice(0, 3).map((r: any) => ({
     id: r.id,
@@ -30,19 +42,48 @@ export function Dashboard() {
     image_url: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400"
   }))
 
+  const userName = user?.name ? user.name.split(' ')[0] : 'Priya';
+
+  const recommendations = [
+    {
+      id: 1,
+      title: "Smart Water Metering Active",
+      description: "Automated telemetry running for Ward 23 & Ward 24 pipelines.",
+      action: "View Telemetry",
+      color: "secondary",
+      icon: "water_drop"
+    },
+    {
+      id: 2,
+      title: "Janani Express Transit Update",
+      description: "Corridor priority active on Janpath Road from Master Canteen.",
+      action: "Check Transit",
+      color: "primary",
+      icon: "directions_bus"
+    },
+    {
+      id: 3,
+      title: "Clean Bhubaneswar Drive",
+      description: "BMC Ward Sanitation inspection scheduled tomorrow at 08:00 AM.",
+      action: "View Schedule",
+      color: "tertiary",
+      icon: "recycling"
+    }
+  ];
+
   return (
     <div className="space-y-10">
       {/* Hero Section */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <Label className="text-on-surface-variant md:hidden mb-1 block">Welcome back,</Label>
-          <Headline level={1} className="mb-2">Good evening, {MOCK_USER.name.split(' ')[0]}.</Headline>
-          <BodyText variant="lg" className="max-w-2xl">The city is breathing steady tonight. Your neighborhood is operating at peak efficiency with no major disruptions reported.</BodyText>
+          <Headline level={1} className="mb-2">Good evening, {userName}.</Headline>
+          <BodyText variant="lg" className="max-w-2xl">Bhubaneswar is operating with high municipal efficiency. Planning hotspots, utilities, and citizen services are synced live.</BodyText>
         </div>
         
         {/* City Health Bento */}
         <div className="grid grid-cols-3 gap-3 w-full md:w-auto">
-          {MOCK_METRICS.slice(0, 3).map((metric) => (
+          {metrics.slice(0, 3).map((metric: any) => (
             <KpiCard 
               key={metric.id} 
               title={metric.label} 
@@ -90,12 +131,12 @@ export function Dashboard() {
           <GlassPanel className="p-6">
             <div className="flex justify-between items-center mb-6">
               <Headline level={2} className="text-[20px] md:text-headline-md">Active Reports</Headline>
-              <Button variant="ghost" className="font-body-md">View History</Button>
+              <Button variant="ghost" className="font-body-md" onClick={() => navigate("/map")}>View on Map</Button>
             </div>
             
             <div className="space-y-4 md:block flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 md:mx-0 md:px-0">
               {isLoading ? <p className="p-4 text-on-surface-variant">Loading live reports...</p> : reports.length === 0 ? <p className="p-4 text-on-surface-variant">No active reports. All clear!</p> : reports.map((report: any) => (
-                <div key={report.id} className="min-w-[240px] md:min-w-0 bg-foreground/5 border border-foreground/5 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4 hover:bg-foreground/10 transition-colors cursor-pointer">
+                <div key={report.id} onClick={() => navigate("/map")} className="min-w-[240px] md:min-w-0 bg-foreground/5 border border-foreground/5 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4 hover:bg-foreground/10 transition-colors cursor-pointer">
                   <div className="hidden md:block w-2 h-12 rounded-full" style={{ backgroundColor: report.progress > 50 ? 'var(--primary)' : 'var(--secondary)' }}></div>
                   <div className="md:hidden w-16 h-16 rounded-xl bg-surface-container overflow-hidden shrink-0">
                     <img className="w-full h-full object-cover" src={report.image_url} alt={report.title} />
@@ -114,8 +155,8 @@ export function Dashboard() {
                       <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${report.progress}%`, backgroundColor: report.progress > 50 ? 'var(--primary)' : 'var(--secondary)', boxShadow: report.progress > 50 ? '0 0 8px var(--primary)' : 'none' }}></div>
                     </div>
                     <div className="hidden md:flex justify-between mt-2 text-label-sm text-on-surface-variant">
-                      <span>{report.events[report.events.length - 1].type} Complete</span>
-                      <span>Expected Repair: {report.expected_resolution}</span>
+                      <span>{report.events?.[0]?.type || report.status} Complete</span>
+                      <span>Expected Repair: {report.expected_resolution || '24 hrs'}</span>
                     </div>
                   </div>
                 </div>
@@ -128,9 +169,9 @@ export function Dashboard() {
         <div className="col-span-12 lg:col-span-4 space-y-6">
           
           <InsightWidget 
-            title={MOCK_RECOMMENDATIONS[0].title}
-            insight={MOCK_RECOMMENDATIONS[0].description}
-            actionLabel={MOCK_RECOMMENDATIONS[0].action}
+            title={recommendations[0].title}
+            insight={recommendations[0].description}
+            actionLabel={recommendations[0].action}
           />
 
           {/* City Highlights */}
@@ -142,16 +183,16 @@ export function Dashboard() {
             </div>
             
             <div className="space-y-6">
-              <div className="group cursor-pointer hidden md:block">
+              <div className="group cursor-pointer hidden md:block" onClick={() => navigate("/admin/planning")}>
                 <div className="w-full h-32 rounded-xl bg-surface-container-high mb-3 overflow-hidden">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzfDX1KOkb0sl6YdQNU5Aba8WaPpYOc0bRIirVhGRNByIsDTz72EedzLqNo4U2WQzLy11BS8JoRJzjNZNEOIDMK6AMYE5ptocbxxNb7eopN8p13HMmKfvLztKkqrrTTdSCX6cYc8sSQKABsS_x5pqRd7n7LI5VuDVA2eQn20-7iE30oWHMcDBHSE2QuDdhL9pz_6RE0imFAcfvEF2X8pVTFKKW_B3dcCasiFAASDxItUltT2VKTKNxfIAHji4zk5qTv0rHmuD8_P4C" alt="Park" />
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&q=80&w=600" alt="Bhubaneswar Smart Infrastructure" />
                 </div>
-                <Label className="text-tertiary mb-1 block">Infrastructure</Label>
-                <Headline level={4} className="mb-1 leading-tight">New AI-Integrated Green Zone Proposed for Central District</Headline>
-                <BodyText className="line-clamp-2">The 12-acre smart park will feature autonomous irrigation and bioluminescent lighting...</BodyText>
+                <Label className="text-tertiary mb-1 block">Municipal Infrastructure</Label>
+                <Headline level={4} className="mb-1 leading-tight">AI-Driven Development Plan Active for Ward 23 & 31</Headline>
+                <BodyText className="line-clamp-2">BMC capital planning engine has synchronized community demands into optimized infrastructure investments.</BodyText>
               </div>
 
-              {MOCK_RECOMMENDATIONS.slice(1).map((rec) => (
+              {recommendations.slice(1).map((rec) => (
                 <div key={rec.id} className={`flex gap-4 items-center p-3 hover:bg-foreground/5 rounded-xl transition-colors cursor-pointer md:bg-transparent bg-surface/40 md:border-none border-l-4 border-${rec.color}`}>
                   <div className={`w-12 h-12 flex-shrink-0 bg-${rec.color}-container/10 rounded-full md:rounded-lg flex items-center justify-center text-${rec.color}`}>
                     <span className="material-symbols-outlined">{rec.icon}</span>

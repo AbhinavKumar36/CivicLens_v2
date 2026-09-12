@@ -1,72 +1,79 @@
-import React, { useState, useCallback } from "react"
+import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { Button } from "@/components/atoms/Button"
 import { cn } from "@/utils/utils"
 import { useNotifications } from "@/contexts/NotificationContext"
-
-const REWARDS_DATA = [
-  { id: "transit-daily", title: "Daily Transit Pass", icon: "directions_bus", cost: 100, desc: "Free bus & metro rides for one full day across all Neo-Metropolis routes.", color: "text-blue-400 bg-blue-500/10" },
-  { id: "parking-2hr", title: "2-Hour Parking Voucher", icon: "local_parking", cost: 75, desc: "Complimentary street-side parking at any municipal parking meter.", color: "text-green-400 bg-green-500/10" },
-  { id: "library-month", title: "Library Premium Access", icon: "local_library", cost: 150, desc: "One month of premium digital library access including audiobooks.", color: "text-purple-400 bg-purple-500/10" },
-  { id: "pool-pass", title: "Community Pool Pass", icon: "pool", cost: 200, desc: "Single entry to any municipal community pool or recreation center.", color: "text-cyan-400 bg-cyan-500/10" },
-  { id: "cafe-voucher", title: "City Hall Café Voucher", icon: "coffee", cost: 50, desc: "One free beverage at any municipal office cafeteria.", color: "text-amber-400 bg-amber-500/10" },
-  { id: "workshop", title: "Civic Workshop Seat", icon: "school", cost: 250, desc: "Reserve a seat at the next city planning workshop or town hall.", color: "text-pink-400 bg-pink-500/10" },
-]
+import { useAuth } from "@/contexts/AuthContext"
+import { api } from "@/services/api"
 
 const HOW_TO_EARN = [
-  { icon: "bug_report", action: "Report an Issue", points: "+25 pts", desc: "File a verified civic report" },
-  { icon: "check_circle", action: "Issue Resolved", points: "+50 pts", desc: "Your reported issue gets resolved" },
-  { icon: "feedback", action: "Community Feedback", points: "+10 pts", desc: "Leave feedback on city services" },
-  { icon: "volunteer_activism", action: "Volunteer Event", points: "+100 pts", desc: "Participate in a city clean-up" },
+  { icon: "bug_report", action: "Report an Issue", points: "+15 pts", desc: "File a verified civic report" },
+  { icon: "assignment_turned_in", action: "Apply for Service", points: "+20 pts", desc: "Submit municipal application" },
+  { icon: "verified_user", action: "Aadhaar KYC", points: "+100 pts", desc: "Verify e-Aadhaar identity" },
+  { icon: "volunteer_activism", action: "Civic Participation", points: "+50 pts", desc: "Participate in planning town halls" },
 ]
 
 export function CivicRewards() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { addNotification } = useNotifications()
-  
-  const [points, setPoints] = useState(() => {
-    const saved = localStorage.getItem("civiclens_rewards_points")
-    return saved ? parseInt(saved, 10) : 350
+  const queryClient = useQueryClient()
+
+  const userId = user?.id || 1;
+
+  const { data: rewards = [] } = useQuery({
+    queryKey: ['rewards'],
+    queryFn: api.getRewards
   })
+
+  const { data: balanceData } = useQuery({
+    queryKey: ['rewards-balance', userId],
+    queryFn: () => api.getRewardsBalance(userId)
+  })
+
+  const points = balanceData?.points ?? 350;
   
-  const [redeemingId, setRedeemingId] = useState<string | null>(null)
+  const [redeemingReward, setRedeemingReward] = useState<any | null>(null)
   const [lastVoucher, setLastVoucher] = useState<string | null>(null)
+  const [isRedeeming, setIsRedeeming] = useState(false)
 
-  const savePoints = useCallback((newPoints: number) => {
-    setPoints(newPoints)
-    localStorage.setItem("civiclens_rewards_points", String(newPoints))
-  }, [])
-
-  const handleRedeem = (reward: typeof REWARDS_DATA[0]) => {
-    if (points < reward.cost) {
+  const handleRedeem = (reward: any) => {
+    if (points < reward.points_cost) {
       addNotification({
         title: "Insufficient Points",
-        message: `You need ${reward.cost} points but only have ${points}. Keep reporting issues to earn more!`,
+        message: `You need ${reward.points_cost} points but only have ${points}. Report issues or apply for services to earn more!`,
         type: "warning",
         group: "system"
       })
       return
     }
-    setRedeemingId(reward.id)
+    setRedeemingReward(reward)
   }
 
-  const confirmRedeem = (reward: typeof REWARDS_DATA[0]) => {
-    const newPoints = points - reward.cost
-    savePoints(newPoints)
+  const confirmRedeem = async (reward: any) => {
+    setIsRedeeming(true)
+    try {
+      const res = await api.redeemReward({ rewardId: reward.id, userId })
+      queryClient.invalidateQueries({ queryKey: ['rewards-balance', userId] })
+      queryClient.invalidateQueries({ queryKey: ['user-stats', userId] })
+      setLastVoucher(res.voucherCode)
+      setRedeemingReward(null)
 
-    const voucherCode = `UP-VOUCH-${Math.floor(100000 + Math.random() * 900000)}`
-    setLastVoucher(voucherCode)
-    setRedeemingId(null)
-
-    addNotification({
-      title: "Reward Redeemed!",
-      message: `${reward.title} voucher claimed. Code: ${voucherCode}`,
-      type: "success",
-      group: "message"
-    })
+      addNotification({
+        title: "Reward Redeemed!",
+        message: `${reward.title} voucher claimed. Code: ${res.voucherCode}`,
+        type: "success",
+        group: "message"
+      })
+    } catch (err: any) {
+      alert("Failed to redeem reward: " + err.message)
+    } finally {
+      setIsRedeeming(false)
+    }
   }
 
   return (
@@ -151,29 +158,29 @@ export function CivicRewards() {
           Redeem Rewards
         </Headline>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {REWARDS_DATA.map(reward => (
+          {rewards.map((reward: any) => (
             <GlassPanel key={reward.id} hover className="p-6 rounded-2xl space-y-4 relative overflow-hidden group">
               <div className="flex items-center gap-4">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", reward.color)}>
-                  <span className="material-symbols-outlined text-2xl">{reward.icon}</span>
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", reward.color_theme || "text-primary bg-primary/10")}>
+                  <span className="material-symbols-outlined text-2xl">{reward.icon || "stars"}</span>
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-sm text-foreground">{reward.title}</h4>
-                  <p className="text-primary font-bold font-label-sm">{reward.cost} PTS</p>
+                  <p className="text-primary font-bold font-label-sm">{reward.points_cost} PTS</p>
                 </div>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed">{reward.desc}</p>
+              <p className="text-xs text-on-surface-variant leading-relaxed">{reward.description}</p>
               <Button
                 className={cn(
                   "w-full font-bold transition-all",
-                  points >= reward.cost
+                  points >= reward.points_cost
                     ? "bg-primary/20 text-primary hover:bg-primary/30 border border-primary/20"
                     : "bg-foreground/5 text-on-surface-variant cursor-not-allowed border border-foreground/10"
                 )}
                 onClick={() => handleRedeem(reward)}
-                disabled={points < reward.cost}
+                disabled={points < reward.points_cost}
               >
-                {points >= reward.cost ? "Redeem" : `Need ${reward.cost - points} more pts`}
+                {points >= reward.points_cost ? "Redeem" : `Need ${reward.points_cost - points} more pts`}
               </Button>
             </GlassPanel>
           ))}
@@ -182,14 +189,14 @@ export function CivicRewards() {
 
       {/* Confirmation Modal */}
       <AnimatePresence>
-        {redeemingId && (
+        {redeemingReward && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-              onClick={() => setRedeemingId(null)}
+              onClick={() => setRedeemingReward(null)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -197,33 +204,32 @@ export function CivicRewards() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full max-w-md"
             >
-              {(() => {
-                const reward = REWARDS_DATA.find(r => r.id === redeemingId)!
-                return (
-                  <GlassPanel className="p-8 rounded-3xl border border-primary/30 shadow-2xl bg-surface-container/90 text-center space-y-4">
-                    <div className={cn("w-16 h-16 rounded-full flex items-center justify-center mx-auto", reward.color)}>
-                      <span className="material-symbols-outlined text-3xl">{reward.icon}</span>
-                    </div>
-                    <Headline level={3}>Confirm Redemption</Headline>
-                    <BodyText className="text-on-surface-variant">
-                      Redeem <strong className="text-primary">{reward.cost} points</strong> for <strong className="text-foreground">{reward.title}</strong>?
-                    </BodyText>
-                    <p className="text-xs text-on-surface-variant">
-                      Your remaining balance will be <strong>{points - reward.cost} pts</strong>.
-                    </p>
-                    <div className="flex gap-3 pt-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setRedeemingId(null)}>Cancel</Button>
-                      <Button className="flex-1 bg-gradient-to-r from-primary to-secondary text-on-primary font-bold" onClick={() => confirmRedeem(reward)}>
-                        Confirm
-                      </Button>
-                    </div>
-                  </GlassPanel>
-                )
-              })()}
+              <GlassPanel className="p-8 rounded-3xl border border-primary/30 shadow-2xl bg-surface-container/90 text-center space-y-4">
+                <div className={cn("w-16 h-16 rounded-full flex items-center justify-center mx-auto", redeemingReward.color_theme || "text-primary bg-primary/10")}>
+                  <span className="material-symbols-outlined text-3xl">{redeemingReward.icon || "stars"}</span>
+                </div>
+                <Headline level={3}>Confirm Redemption</Headline>
+                <BodyText className="text-on-surface-variant">
+                  Redeem <strong className="text-primary">{redeemingReward.points_cost} points</strong> for <strong className="text-foreground">{redeemingReward.title}</strong>?
+                </BodyText>
+                <p className="text-xs text-on-surface-variant">
+                  Your remaining balance will be <strong>{points - redeemingReward.points_cost} pts</strong>.
+                </p>
+                <div className="flex gap-3 pt-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setRedeemingReward(null)}>Cancel</Button>
+                  <Button 
+                    className="flex-1 bg-gradient-to-r from-primary to-secondary text-on-primary font-bold" 
+                    disabled={isRedeeming}
+                    onClick={() => confirmRedeem(redeemingReward)}
+                  >
+                    {isRedeeming ? "Redeeming..." : "Confirm"}
+                  </Button>
+                </div>
+              </GlassPanel>
             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   )
 }

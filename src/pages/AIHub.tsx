@@ -189,19 +189,19 @@ export function AIHub() {
                 {/* Quick Actions Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                   {[
-                    { title: "Report Issue", desc: "Infrastructure reporting", icon: "construction", color: "text-primary" },
-                    { title: "Pay Taxes", desc: "Property & Utilities", icon: "account_balance_wallet", color: "text-secondary" },
-                    { title: "Transit Status", desc: "Live city transport", icon: "directions_transit", color: "text-tertiary" },
-                    { title: "Apply for Permit", desc: "Digital approvals", icon: "description", color: "text-primary-fixed-dim" },
+                    { title: "Why is Drainage Ranked #1?", desc: "Explain deterministic priority", icon: "leaderboard", color: "text-primary" },
+                    { title: "What can we fund with ₹5 crore?", desc: "Optimal portfolio allocation", icon: "account_balance_wallet", color: "text-secondary" },
+                    { title: "Compare Ward 23 and Ward 31", desc: "Census & infrastructure gap", icon: "compare_arrows", color: "text-tertiary" },
+                    { title: "Show Demand Hotspots", desc: "Citizen priority clusters", icon: "local_fire_department", color: "text-orange-400" },
                   ].map((action, idx) => (
                     <button 
                       key={idx}
-                      onClick={() => handleQuickAction(`I want to ${action.title.toLowerCase()}`)}
-                      className="glass-panel p-6 rounded-2xl text-left hover:bg-foreground/5 hover:-translate-y-1 transition-all group"
+                      onClick={() => handleQuickAction(action.title)}
+                      className="glass-panel p-5 rounded-2xl text-left hover:bg-foreground/5 hover:-translate-y-1 transition-all group border border-foreground/10"
                     >
-                      <span className={cn("material-symbols-outlined mb-4 block scale-125", action.color)}>{action.icon}</span>
-                      <p className="font-bold text-sm mb-1">{action.title}</p>
-                      <p className="text-xs text-on-surface-variant">{action.desc}</p>
+                      <span className={cn("material-symbols-outlined mb-3 block scale-110", action.color)}>{action.icon}</span>
+                      <p className="font-bold text-xs mb-1 text-foreground">{action.title}</p>
+                      <p className="text-[11px] text-on-surface-variant">{action.desc}</p>
                     </button>
                   ))}
                 </div>

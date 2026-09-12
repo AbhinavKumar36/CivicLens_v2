@@ -179,54 +179,6 @@ export function LandingPage() {
           </motion.div>
         </section>
 
-        {/* About Section */}
-        <section className="max-w-4xl mx-auto px-6 pb-24 relative z-10 w-full">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#171f33]/45 backdrop-blur-md rounded-full border border-[#dae2fd]/10">
-                <span className="w-2 h-2 rounded-full bg-[#c0c1ff] animate-pulse"></span>
-                <span className="text-[10px] text-[#c0c1ff] tracking-widest uppercase font-bold">The Mind Behind CivicLens</span>
-            </div>
-            <h3 className="font-display-lg text-3xl font-bold text-[#dae2fd]">About the <span className="bg-gradient-to-r from-[#c0c1ff] to-[#ddb7ff] bg-clip-text text-transparent">Creator</span></h3>
-            <p className="text-sm text-[#c7c4d7] max-w-2xl mx-auto leading-relaxed">
-              CivicLens AI was engineered as a cutting-edge city operating system to push the boundaries of modern civic tech and AI integration.
-            </p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            whileInView={{ opacity: 1, y: 0 }} 
-            viewport={{ once: true }}
-            className="bg-[#171f33]/45 backdrop-blur-md p-8 rounded-3xl border border-[#c0c1ff]/30 relative overflow-hidden group hover:border-[#c0c1ff]/60 transition-colors shadow-lg shadow-[#c0c1ff]/5 max-w-2xl mx-auto"
-          >
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-30 transition-opacity">
-                <span className="material-symbols-outlined text-[80px] text-[#c0c1ff]">code_blocks</span>
-            </div>
-            <div className="relative z-10">
-                <div className="mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-                    <img src={`${import.meta.env.BASE_URL}abhinav.png`} alt="Abhinav Kumar" className="w-24 h-24 rounded-full object-cover border-2 border-[#c0c1ff]/50 shadow-[0_0_15px_rgba(192,193,255,0.3)] object-top" />
-                    <div className="mt-2 sm:mt-0">
-                        <span className="text-[10px] text-[#c0c1ff] uppercase tracking-widest font-bold">Lead Architect & Full-Stack Developer</span>
-                        <h3 className="font-display-lg text-2xl mt-1 text-[#dae2fd] font-bold">Abhinav Kumar</h3>
-                    </div>
-                </div>
-                <p className="text-sm text-[#c7c4d7] mb-8 leading-relaxed text-center sm:text-left">
-                    The driving engineering force behind CivicLens. Abhinav spearheaded the entire architecture, UI/UX design, and full-stack AI implementation—crafting a seamless interface and robust smart city ecosystem from the ground up.
-                </p>
-                <div className="flex flex-wrap justify-center sm:justify-start gap-6 pt-5 border-t border-[#dae2fd]/10">
-                    <a href="mailto:itsabhinav36@gmail.com" className="text-[#908fa0] hover:text-[#c0c1ff] transition-colors flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold">
-                        <span className="material-symbols-outlined text-[16px]">mail</span> Email
-                    </a>
-                    <a href="https://www.linkedin.com/in/abhinav-kumar-b4b993382/" target="_blank" rel="noreferrer" className="text-[#908fa0] hover:text-[#c0c1ff] transition-colors flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold">
-                        <span className="material-symbols-outlined text-[16px]">share</span> LinkedIn
-                    </a>
-                    <a href="https://github.com/AbhinavKumar36" target="_blank" rel="noreferrer" className="text-[#908fa0] hover:text-[#c0c1ff] transition-colors flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold">
-                        <span className="material-symbols-outlined text-[16px]">code_blocks</span> GitHub
-                    </a>
-                </div>
-            </div>
-          </motion.div>
-        </section>
-
         {/* Footer */}
         <footer className="w-full py-8 border-t border-[#dae2fd]/5 text-center text-[10px] text-[#908fa0] tracking-wider uppercase bg-[#060e20]/30 relative z-10">
           &copy; {new Date().getFullYear()} CivicLens AI. Powered by Gemini Developer API. All Rights Reserved.

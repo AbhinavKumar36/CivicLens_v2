@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { AppLayout } from "./layouts/AppLayout"
 import { LoadingSpinner } from "./components/ui/LoadingSpinner"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
+import { NotificationProvider } from "./contexts/NotificationContext"
 
 // Lazy loaded page chunks
 const LandingPage = lazy(() => import("./pages/LandingPage").then(m => ({ default: m.LandingPage })));
@@ -24,6 +25,7 @@ const EmergencyDashboard = lazy(() => import("./pages/EmergencyDashboard").then(
 const Support = lazy(() => import("./pages/Support").then(m => ({ default: m.Support })));
 const AnonymousReport = lazy(() => import("./pages/AnonymousReport").then(m => ({ default: m.AnonymousReport })));
 const CivicRewards = lazy(() => import("./pages/CivicRewards").then(m => ({ default: m.CivicRewards })));
+const DevelopmentPlanning = lazy(() => import("./pages/DevelopmentPlanning").then(m => ({ default: m.DevelopmentPlanning })));
 
 const queryClient = new QueryClient()
 
@@ -55,45 +57,48 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/report/anonymous" element={<AnonymousReport />} />
-              
-              {/* Protected App Routes inside layout */}
-              <Route element={<AppLayout />}>
+        <NotificationProvider>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/report/anonymous" element={<AnonymousReport />} />
                 
-                {/* Citizen Routes */}
-                <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['CITIZEN']}><Dashboard /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><CitizenProfile /></ProtectedRoute>} />
-                <Route path="/services" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ServicesHub /></ProtectedRoute>} />
-                <Route path="/report" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ReportIssue /></ProtectedRoute>} />
-                <Route path="/report/review" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ReportIssueReview /></ProtectedRoute>} />
-                <Route path="/rewards" element={<ProtectedRoute allowedRoles={['CITIZEN']}><CivicRewards /></ProtectedRoute>} />
-                
-                {/* Operator Routes */}
-                <Route path="/admin" element={<ProtectedRoute allowedRoles={['OPERATOR']}><AdminDashboard /></ProtectedRoute>} />
-                <Route path="/emergency" element={<ProtectedRoute allowedRoles={['OPERATOR']}><EmergencyDashboard /></ProtectedRoute>} />
-                <Route path="/analytics" element={<ProtectedRoute allowedRoles={['OPERATOR']}><AdminDashboard /></ProtectedRoute>} />
-                
-                {/* Worker Routes */}
-                <Route path="/worker" element={<ProtectedRoute allowedRoles={['WORKER']}><WorkerDashboard /></ProtectedRoute>} />
-                
-                {/* Shared Routes (Available to multiple roles) */}
-                <Route path="/map" element={<ProtectedRoute><MapDashboard /></ProtectedRoute>} />
-                <Route path="/ai" element={<ProtectedRoute><AIHub /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-                <Route path="/reports/:id" element={<ProtectedRoute><IssueTrackingTimeline /></ProtectedRoute>} />
+                {/* Protected App Routes inside layout */}
+                <Route element={<AppLayout />}>
+                  
+                  {/* Citizen Routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['CITIZEN']}><Dashboard /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><CitizenProfile /></ProtectedRoute>} />
+                  <Route path="/services" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ServicesHub /></ProtectedRoute>} />
+                  <Route path="/report" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ReportIssue /></ProtectedRoute>} />
+                  <Route path="/report/review" element={<ProtectedRoute allowedRoles={['CITIZEN']}><ReportIssueReview /></ProtectedRoute>} />
+                  <Route path="/rewards" element={<ProtectedRoute allowedRoles={['CITIZEN']}><CivicRewards /></ProtectedRoute>} />
+                  
+                  {/* Operator Routes */}
+                  <Route path="/admin" element={<ProtectedRoute allowedRoles={['OPERATOR']}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/admin/planning" element={<ProtectedRoute allowedRoles={['OPERATOR']}><DevelopmentPlanning /></ProtectedRoute>} />
+                  <Route path="/emergency" element={<ProtectedRoute allowedRoles={['OPERATOR']}><EmergencyDashboard /></ProtectedRoute>} />
+                  <Route path="/analytics" element={<ProtectedRoute allowedRoles={['OPERATOR']}><AdminDashboard /></ProtectedRoute>} />
+                  
+                  {/* Worker Routes */}
+                  <Route path="/worker" element={<ProtectedRoute allowedRoles={['WORKER']}><WorkerDashboard /></ProtectedRoute>} />
+                  
+                  {/* Shared Routes (Available to multiple roles) */}
+                  <Route path="/map" element={<ProtectedRoute><MapDashboard /></ProtectedRoute>} />
+                  <Route path="/ai" element={<ProtectedRoute><AIHub /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+                  <Route path="/reports/:id" element={<ProtectedRoute><IssueTrackingTimeline /></ProtectedRoute>} />
 
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+                </Route>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

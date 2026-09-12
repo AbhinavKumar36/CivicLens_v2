@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { api } from "@/services/api";
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 export type NotificationGroup = 'system' | 'alert' | 'message';
@@ -23,69 +24,47 @@ interface NotificationContextType {
   removeNotification: (id: string) => void;
 }
 
+
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'civiclens_notifications';
-
-// Initial Mock Notifications
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'init-1',
-    title: 'Traffic Alert',
-    message: 'High congestion detected on Sector 4 Junction.',
-    type: 'warning',
-    group: 'alert',
-    read: false,
-    timestamp: Date.now() - 1000 * 60 * 5, // 5 mins ago
-  },
-  {
-    id: 'init-2',
-    title: 'Permit Approved',
-    message: 'Your building permit #8492 has been approved.',
-    type: 'success',
-    group: 'message',
-    read: false,
-    timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
-  }
-];
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_NOTIFICATIONS;
+      return [];
     }
   });
+
+  // Fetch live notifications from backend database on mount
+  useEffect(() => {
+    let isMounted = true;
+    api.getNotifications().then(data => {
+      if (isMounted && Array.isArray(data) && data.length > 0) {
+        const formatted: AppNotification[] = data.map((n: any) => ({
+          id: String(n.id),
+          title: n.title,
+          message: n.message,
+          type: (n.type as NotificationType) || 'info',
+          group: (n.group || n.group_type as NotificationGroup) || 'system',
+          read: Boolean(n.read || n.is_read),
+          timestamp: n.timestamp || (n.created_at ? new Date(n.created_at).getTime() : Date.now())
+        }));
+        setNotifications(formatted);
+      }
+    }).catch(err => {
+      console.warn("Could not sync notifications from DB:", err.message);
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   // Sync to local storage
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
-
-  // Real-time Simulation Engine
-  useEffect(() => {
-    const timer = setInterval(() => {
-      // 10% chance every 10 seconds to generate a notification
-      if (Math.random() > 0.9) {
-        const events = [
-          { title: 'Water Pressure Drop', msg: 'Sensors detect an anomaly in District 3.', t: 'error', g: 'alert' },
-          { title: 'Payment Received', msg: 'Thank you for paying your Property Tax.', t: 'success', g: 'message' },
-          { title: 'AI Recommendation', msg: 'Optimal routing suggested for daily commute.', t: 'info', g: 'system' }
-        ];
-        const event = events[Math.floor(Math.random() * events.length)];
-        addNotification({
-          title: event.title,
-          message: event.msg,
-          type: event.t as NotificationType,
-          group: event.g as NotificationGroup
-        });
-      }
-    }, 10000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -101,10 +80,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const markAsRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    api.markNotificationRead(id).catch(() => {});
   }, []);
 
   const markAllAsRead = useCallback(() => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    api.markAllNotificationsRead().catch(() => {});
   }, []);
 
   const clearAll = useCallback(() => {
@@ -133,7 +114,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
+    return {
+      notifications: [],
+      unreadCount: 0,
+      addNotification: () => {},
+      markAsRead: () => {},
+      markAllAsRead: () => {},
+      clearAll: () => {},
+      removeNotification: () => {}
+    };
   }
   return context;
 }

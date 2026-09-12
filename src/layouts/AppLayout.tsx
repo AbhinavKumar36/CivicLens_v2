@@ -6,11 +6,11 @@ import { TopAppBar } from "@/components/TopAppBar"
 import { BottomNav } from "@/components/BottomNav"
 import { AIOrbFAB } from "@/components/ui/AIOrbFAB"
 import { CommandPalette } from "@/components/organisms/CommandPalette"
-import { NotificationProvider } from "@/contexts/NotificationContext"
 import { ThemeProvider } from "@/contexts/ThemeContext"
 import { SettingsProvider } from "@/contexts/SettingsContext"
 import { ToastContainer } from "@/components/ui/ToastContainer"
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation"
+import { cn } from "@/utils/utils"
 
 export function AppLayout() {
   const location = useLocation()
@@ -18,11 +18,12 @@ export function AppLayout() {
   
   // Initialize global Voice Navigation
   const { isListening, lastCommand } = useVoiceNavigation(true);
+  
+  const isFullScreenPage = location.pathname === '/map' || location.pathname === '/ai';
 
   return (
     <SettingsProvider>
       <ThemeProvider defaultTheme="system" storageKey="civiclens-theme">
-        <NotificationProvider>
         <div className="min-h-screen bg-background text-on-surface flex flex-col font-body-md overflow-x-hidden transition-colors duration-300">
           
           {/* Voice Command Feedback overlay */}
@@ -53,7 +54,12 @@ export function AppLayout() {
           <Sidebar />
           <TopAppBar />
           
-          <main className="relative z-10 md:ml-sidebar-width mt-header-height min-h-screen p-container-padding-mobile md:p-gutter pb-32 md:pb-12">
+          <main className={cn(
+            "relative z-10 md:ml-sidebar-width mt-header-height",
+            isFullScreenPage 
+              ? "h-[calc(100vh-72px)] overflow-hidden p-0 pb-0" 
+              : "min-h-screen p-container-padding-mobile md:p-gutter pb-32 md:pb-12"
+          )}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -61,6 +67,7 @@ export function AppLayout() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
+                className={isFullScreenPage ? "h-full w-full" : undefined}
               >
                 <React.Suspense fallback={<div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div></div>}>
                   {currentOutlet}
@@ -74,7 +81,6 @@ export function AppLayout() {
           <CommandPalette />
           <ToastContainer />
         </div>
-      </NotificationProvider>
       </ThemeProvider>
     </SettingsProvider>
   )

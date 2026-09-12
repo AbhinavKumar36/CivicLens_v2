@@ -15,6 +15,7 @@ const CITIZEN_ITEMS = [
 
 const OPERATOR_ITEMS = [
   { label: "Control Center", icon: "admin_panel_settings", path: "/admin" },
+  { label: "Development Planning", icon: "account_tree", path: "/admin/planning" },
   { label: "Emergency SOS", icon: "emergency", path: "/emergency" },
   { label: "Map Overview", icon: "map", path: "/map" },
   { label: "AI Hub", icon: "auto_awesome", path: "/ai" },

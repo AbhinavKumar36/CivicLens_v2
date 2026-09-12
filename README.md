@@ -1,61 +1,146 @@
-# CivicLens AI Operating System
+# CivicLens — AI Civic Operating System & Constituency Development Planning Platform
 
-![CivicLens Header](https://via.placeholder.com/1200x400/0b1326/8083ff?text=CivicLens+AI+OS)
+![CivicLens Banner](https://via.placeholder.com/1200x400/0b1326/8083ff?text=CivicLens+AI+OS+%26+Constituency+Development+Planning)
 
-CivicLens is a next-generation, AI-driven municipal operating system designed to bridge the gap between citizens, field workers, and city administration. Built with an absolute commitment to Google Stitch design principles, it delivers a stunning, accessible, and high-performance digital infrastructure for modern smart cities.
+> **"People's Priorities: AI for Constituency Development Planning"**
+> 
+> CivicLens is an enterprise-grade municipal operating system and constituency development planning platform. Built for Indian urban local bodies—specifically demonstrated for the **Bhubaneswar Municipal Corporation (BMC)**—it bridges the gap between raw citizen voices, field operations, and high-level capital expenditure governance.
 
-## 🌟 Key Features
+---
 
-### 🏛 Citizen & Community Hub
-- **Services Directory**: Apply for building permits, trade licenses, and park reservations through dynamic wizard flows.
-- **AI-Powered Issue Reporting**: Gone are the days of tedious forms. Speak or type to the native **Gemini AI**, which intelligently parses conversational context into strict JSON payloads for instant dispatch.
-- **Interactive Map Dashboard**: A real-time, interactive Leaflet map rendering active incidents, worker locations, and infrastructure statuses across the city grid.
+## 🌟 Key Capabilities
 
-### 📊 Administrative & Worker Platforms
-- **Universal Profile System**: A dynamically adapting profile view that simplifies the interface for Operators and Workers while displaying detailed civic metrics for Citizens.
-- **Admin Control Center**: Comprehensive operational overview powered by animated `recharts` data visualizations, tracking department performance, ward comparisons, and citizen satisfaction.
-- **Field Worker View**: A mobile-optimized interface for on-the-ground technicians to manage priority tasks and location-based agendas.
-- **Emergency Response Center**: A striking, high-visibility dashboard for monitoring active crises, dispatching responders, and broadcasting SOS alerts.
+### 1. 🏛 Citizen Voice & Operations Platform
+- **Natural-Language Voice & Text Reporting**: Powered by native Google Gemini and the Web Speech API (`Ctrl+M` hotkey). Speak or type civic issues naturally; AI classifies, geolocates, and automatically routes reports to the appropriate department.
+- **Dynamic Real-Time Hotspot Marking**: Reporting an issue triggers instantaneous demand normalization, theme clustering, and dynamic recomputation of GIS demand hotspots with a strict **100-meter radius** reflected live without page reload.
+- **e-Aadhaar KYC Citizen Registration**: First-time citizens can verify their identity using UIDAI-compliant digitally signed e-Aadhaar PDFs, deriving passcodes (`FIRST4NAME + YYYY`) and claiming a +100 Civic Points welcome grant.
+- **Direct Database Seeding (Zero Frontend Mock Data)**: Central municipal services, Bhubaneswar civic rewards, user timeline activities, and notifications are directly seeded into SQLite (`civiclens.db`) and served via REST APIs.
+- **Dynamic Issue Tracking**: Interactive lifecycle tracker from submission through technician assignment, in-progress repairs, and verified resolution.
+- **Interactive Multi-Layer Leaflet GIS**: Real-time spatial dashboard toggling between:
+  - Active Civic Incidents
+  - Normalized Development Demands
+  - Geospatial Demand Hotspots (pulsing 100m intensity circles)
+  - Infrastructure Amenities & Baselines
+  - Capital Works Proposals & Approved Portfolios
+- **Mobile-First Field Worker Dashboard**: High-contrast, touch-optimized field queue for municipal technicians with route guidance and status updates.
+- **Emergency Crisis Center**: High-visibility crisis command center for dispatching emergency responders and broadcasting citywide alerts.
 
-### 🧠 Cutting-Edge Architecture
-- **Global Voice Navigation**: Powered by the Web Speech API. Press `Ctrl+M` to activate the microphone and navigate the OS hands-free (e.g., "Go to Dashboard", "Report an issue").
-- **WCAG AA Accessibility Engine**: A dedicated settings context allowing users to seamlessly toggle High Contrast (WCAG AAA), Large Text (Dynamic Scaling), and Reduced Motion settings globally.
-- **Dynamic Theming**: An intricate CSS variable architecture supporting Light, Dark, and System modes with local storage persistence and a synchronous zero-flash initialization script.
+---
 
-### 🤖 AI Capabilities
-CivicLens leverages state-of-the-art Google Gemini integration to provide an unprecedented civic experience:
-- **Conversational Civic Assistant**: Engage in open-ended dialogue to find services or track issues.
-- **Robust Fallback Mechanism**: The AI engine ensures 100% uptime by seamlessly cascading from `gemini-3.5-flash` to `gemini-2.5-flash`, and finally to an offline simulated mock session if network connections fail.
-- **Hyper-Local Context Awareness**: The AI dynamically integrates browser geolocation to provide context-aware responses when you ask location-specific questions.
-- **Natural-Language Complaint Reporting**: Describe your issue naturally without wrestling with complex forms.
-- **Image-Based Issue Classification**: AI automatically interprets uploaded imagery to aid in diagnosis, with built-in fallbacks.
-- **Voice Interaction**: Tap the mic button to speak directly to the AI. Fully functional Web Speech API integration translates spoken words into actionable text.
-- **Department Recommendation**: The AI autonomously assigns incoming reports to the correct municipal department.
-- **Priority Estimation**: Instant algorithmic triage assigns severity and priority levels based on urgency.
-- **Government Service Guidance**: The assistant guides citizens through complex bureaucratic processes.
+### 2. 🧠 Constituency Development Planning Intelligence
+CivicLens transforms uncoordinated citizen complaints into auditable, data-backed capital improvement portfolios:
 
-### 🇮🇳 Culturally Localized
-- **Personas & Mock Data**: Default user profiles and mock data have been thoughtfully localized with Indian names (e.g., Priya Sharma as the Global Mock User, Rahul Verma) and relevant avatars to make the demonstration more relatable to local civic bodies.
-- **Branding**: Fully customized with project-specific logos and favicons embedded across the Landing Page, Auth Flows, and Sidebar.
+```
+Citizen Voice / Text Input
+    ↓
+AI Normalization Pipeline (Category, Subcategory, Severity, Urgency, Affected Demographics)
+    ↓
+Structured Civic Demands (Persistent SQLite Schema)
+    ↓
+Demand Themes & Recurrence Tracking (Coherence scoring & citizen reach)
+    ↓
+Geographic Hotspots (Spatial density & intensity calculations)
+    ↓
+Public Data & Evidence Fusion (Bhubaneswar Census 2011, BMC Slum Surveys, OSM)
+    ↓
+Development Proposals (8 BMC Wards: Drainage, Healthcare, Water, Roads, Solar, Waste)
+    ↓
+Deterministic 11-Factor Priority Engine (Transparent 0–100 mathematical scoring)
+    ↓
+Multi-Scenario Impact Assessment (Conservative, Base, Optimistic models)
+    ↓
+Constraint-Aware Portfolio Optimization (₹5.0 Cr budget slider & exclusion rationales)
+    ↓
+Authority Decision Studio (Human review, override tracking with mandatory justification)
+    ↓
+Permanent DecisionRecord Audit Trail (Cryptographically tamper-evident log)
+```
+
+---
+
+## 📊 Development Planning Studio (`/admin/planning`)
+
+Located inside the Operator Portal, the Development Planning Studio provides municipal commissioners and urban planners with a 9-tab intelligence suite:
+
+| Module | Purpose & Features |
+| :--- | :--- |
+| **Demand Intelligence** | Real-time stream of normalized citizen inputs with confidence scores, severity ratings, and target groups. Includes an interactive live prompt simulator. |
+| **Themes & Recurrence** | Clusters individual demands into recurring civic themes with coherence scores and unique citizen reach metrics. |
+| **Demand Hotspots** | Spatial clustering identifying high-concentration wards with intensity calculations and dominant civic categories. |
+| **Public Data & Evidence** | Official registry for Bhubaneswar Census 2011 demographics, BMC Slum Housing records, and OSM infrastructure. Supports deep-dive evidence inspection (`SUPPORTING`, `CONTRADICTING`, `NEUTRAL`, `INSUFFICIENT_DATA`). |
+| **Proposals** | Catalog of structured capital works proposals with budget, timeline, target ward, beneficiaries, and dependencies. |
+| **Priority Engine** | Full mathematical breakdown of the 11 deterministic factors and weights contributing to each proposal's priority score. |
+| **Impact Assessment** | 3-scenario forecasting (Conservative / Base / Optimistic) with declared assumptions and uncertainty levels. |
+| **Portfolio Optimizer** | Interactive constraint planner with a ₹5.0 Cr budget slider, real-time value/cost optimization, and auditable exclusion rationales. |
+| **Decision Studio** | Final authority governance interface allowing approvals, overrides with mandatory justifications, and a permanent history of `DecisionRecord` entries. |
+
+---
+
+## 📐 Deterministic 11-Factor Priority Engine
+
+To ensure algorithmic fairness and eliminate LLM hallucinations in capital allocation, priority scores are calculated using a deterministic, reproducible formula:
+
+$$\text{Priority Score} = \sum_{i=1}^{11} w_i \times \text{normalized\_factor}_i$$
+
+```
+FACTOR BREAKDOWN (Example: Ward 23 Stormwater Drainage — Total: 87.4 / 100)
+├── Demand Strength           (w = 0.16) : 95.0% -> +15.20 pts
+├── Unique Citizen Reach      (w = 0.14) : 90.0% -> +12.60 pts
+├── Recurrence Status         (w = 0.12) : 100.0% -> +12.00 pts
+├── Geographic Concentration  (w = 0.10) : 90.0% -> +9.00 pts
+├── Contextual Evidence       (w = 0.10) : 88.0% -> +8.80 pts
+├── Infrastructure Gap        (w = 0.10) : 85.0% -> +8.50 pts
+├── Urgency Level             (w = 0.08) : 90.0% -> +7.20 pts
+├── Problem Severity          (w = 0.06) : 80.0% -> +4.80 pts
+├── Affected Population       (w = 0.05) : 74.0% -> +3.70 pts
+├── Equity & Vulnerability    (w = 0.05) : 82.0% -> +4.10 pts
+└── Evidence Confidence       (w = 0.04) : 92.0% -> +3.68 pts
+```
+
+Every score includes a human-readable explanation derived directly from the mathematical contributions.
+
+---
+
+## 📈 Constraint-Aware Portfolio Optimization
+
+The Portfolio Optimizer solves the 0-1 Knapsack problem using an exact Branch-and-Bound algorithm maximizing composite citizen value under real-world municipal constraints:
+
+- **Configurable Budget**: Dynamic budget limit (e.g., ₹5.00 Cr to ₹20.00 Cr).
+- **Exact Optimization**: Branch-and-Bound solver explores the combinatorial space to find the global optimum combination of projects maximizing composite value under hard fiscal envelopes.
+- **Auditable Exclusion Rationales**: For every proposal excluded, the engine explicitly logs deterministic reasons (e.g., `Exceeds remaining available budget of ₹X Cr`, `Category allocation cap reached`, `Prerequisite dependencies not selected`).
+- **Human-in-the-Loop Governance**: Administrators can override recommended selections, but the system **strictly mandates an auditable justification of ≥15 characters** for every override before creating the immutable `DecisionRecord`.
+
+---
+
+## 🏛 Authentic Bhubaneswar Datasets & Evidence Fusion
+
+CivicLens adheres to a strict **truthfulness standard**:
+- **Ingested Datasets**:
+  - `City_Profile_Bhubaneswar_1_0 (1).csv`: Official ward-level Census 2011 demographics (Total Population, Male/Female, SC/ST, Households, Literates).
+  - `Slum_Housing_Bhubaneswar_1.csv`: BMC slum surveys detailing slum counts, slum populations, and infrastructure access per ward.
+  - `wards.geojson` & `osm-amenities.geojson`: Accurate boundary geometries and verified public amenities for Bhubaneswar.
+- **Evidence Verification**: Each proposal cites authentic ground-truth records. Zero fabricated baselines or synthetic thresholds. Where specific field readings are absent, the system explicitly marks the evidence as `INSUFFICIENT_DATA` with `confidence: 0.0`.
+
+---
+
+## 🆔 Aadhaar Identity Verification
+
+CivicLens preserves the exact Aadhaar verification method from `civic_v3`:
+- Verifies password-protected e-Aadhaar PDF documents.
+- Inspects the document for embedded digital signature dictionaries (`/Type /Sig`, `/ByteRange`).
+- Uses UIDAI standard password derivation: `FIRST4CHARS_NAME_UPPERCASE + YEAR_OF_BIRTH` (e.g. `PRIY1996`).
+- Truthfully reports tamper status with exact `civic_v3` error messaging (`"No digital signature found. The Aadhaar PDF might be tampered with."`) without fabricating cryptographic integrity claims.
 
 ---
 
 ## 🏗 Technology Stack
 
-### Frontend (Client)
-- **Framework**: React 18 / Vite
-- **Routing**: React Router v6 (Lazy-loaded chunks for extreme performance)
-- **Styling**: Tailwind CSS + Vanilla CSS Variables
-- **Animations**: Framer Motion
-- **Data Fetching**: TanStack Query (React Query)
-- **Forms**: React Hook Form + Zod
-- **Maps & Charts**: Leaflet (OpenStreetMap) + Recharts
-- **AI Integration**: `@google/generative-ai` (Gemini)
-
-### Backend (Server)
-- **Framework**: Node.js / Express
-- **Database**: SQLite (`better-sqlite3`)
-- **API Simulation**: Built-in latency injection for realistic testing
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Vanilla CSS custom properties.
+- **State & Routing**: React Router v6 (lazy-loaded chunks), TanStack Query.
+- **Data Visualizations & GIS**: Recharts (Radar, Area, Bar, Pie charts), Leaflet + React-Leaflet (OpenStreetMap).
+- **AI Core**: Google Gemini Generative AI SDK (`gemini-3.5-flash` with cascading fallback to `gemini-2.5-flash` and local offline mock).
+- **Backend Server**: Node.js, Express, RESTful JSON API.
+- **Database**: SQLite with `better-sqlite3` (WAL mode enabled, foreign keys enforced).
 
 ---
 
@@ -63,57 +148,37 @@ CivicLens leverages state-of-the-art Google Gemini integration to provide an unp
 
 ### Prerequisites
 - Node.js v18+
-- A Google Gemini API Key
+- Google Gemini API Key (optional; offline mock mode included)
 
-### 1. Project Setup
-
-The project runs both the frontend and the mock backend concurrently from the root directory.
+### Installation & Run
 
 ```bash
+# 1. Install dependencies
 npm install
 
-# Create environment file
-echo VITE_GEMINI_API_KEY=your_api_key_here > .env
+# 2. Configure environment (optional)
+echo VITE_GEMINI_API_KEY=your_gemini_api_key_here > .env
 
-# Seed the database with realistic mock data
-node seed.js
-
-# Start the development server (runs both Vite and Express)
+# 3. Start development server (launches both frontend on 5174 and Express API on 3000)
 npm run dev
 ```
-> The frontend application will now be running at `http://localhost:5173`.
-> The mock API server runs simultaneously on port 3000.
+
+- **Frontend**: `http://localhost:5174`
+- **Backend API**: `http://localhost:3000`
 
 ---
 
-## 📦 Production Deployment
+## 🛡 Accessibility & Design Integrity
 
-This application is fully optimized for production environments like **Vercel**.
-
-1. **Code Splitting**: The application utilizes `React.lazy()` and Suspense boundaries to split massive route components (like the Map and Admin dashboards) into isolated JavaScript chunks, dropping the core bundle payload to ~140kB.
-2. **SPA Routing**: A `vercel.json` configuration file is included in the frontend root to intercept deep links and correctly route them to `index.html`.
-
-To deploy, simply push the repository to GitHub and link it to your Vercel dashboard. The build command `npm run build` is pre-configured to execute a strict Vite compilation.
+- **WCAG AA Compliant**: High-contrast mode, dynamic text scaling, and reduced motion toggles.
+- **Zero Flash Theme Engine**: Synchronous initialization for Light, Dark, and System modes.
+- **Responsive Layout**: Seamless experience across mobile tablets, laptops, and 4K command displays.
 
 ---
 
-## 🛡 Accessibility (A11y)
-
-CivicLens is deeply committed to universal access:
-- Semantic HTML5 elements (`<nav>`, `<main>`, `<aside>`) and ARIA roles (`role="navigation"`, `aria-label`).
-- Explicit `:focus-visible` outline rings for pristine keyboard (Tab) navigation.
-- A dedicated User Settings portal to override colors, text sizing, and vestibular-triggering animations.
-
----
-
-## 👨‍💻 Creator
-**Abhinav Kumar**
-*Lead Architect & Full-Stack Developer*
-The driving engineering force behind CivicLens. Abhinav spearheaded the entire architecture, UI/UX design, and full-stack AI implementation—crafting a seamless interface and robust smart city ecosystem from the ground up.
-
-- **Email**: [itsabhinav36@gmail.com](mailto:itsabhinav36@gmail.com)
-- **LinkedIn**: [Abhinav Kumar](https://www.linkedin.com/in/abhinav-kumar-b4b993382/)
+## 👨‍💻 Author & Architecture
+**Abhinav Kumar**  
+*Lead Architect & Full-Stack Developer*  
+- **Email**: [itsabhinav36@gmail.com](mailto:itsabhinav36@gmail.com)  
+- **LinkedIn**: [Abhinav Kumar](https://www.linkedin.com/in/abhinav-kumar-b4b993382/)  
 - **GitHub**: [AbhinavKumar36](https://github.com/AbhinavKumar36)
-
----
-*Built as a conceptual demonstration of advanced Agentic Coding and AI-driven municipal infrastructure.*

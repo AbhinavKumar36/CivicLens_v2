@@ -124,11 +124,12 @@ export function AdminDashboard() {
 
   // Chart 4: Ward Incident Density (Radar Chart)
   const wardData = useMemo(() => {
-    const wards = ['North Ward', 'South Ward', 'East Ward', 'West Ward', 'Central', 'Harbor']
+    const wards = ['Ward 23 (Bhouma Nagar)', 'Ward 24 (Saheed Nagar)', 'Ward 35 (Rasulgarh)', 'Ward 42 (Nayapalli)', 'Ward 12 (Chandrasekharpur)', 'Ward 31 (Old Town)']
     return wards.map((ward, idx) => {
-      const count = complaints.filter((c: any) => (c.id + idx) % 6 === 0).length
+      const wardNum = ward.split(' ')[1];
+      const count = complaints.filter((c: any) => (c.summary || '').includes(wardNum) || (c.id + idx) % 6 === 0).length
       return {
-        subject: ward,
+        subject: ward.split(' ')[0] + ' ' + ward.split(' ')[1],
         issues: count * 10 || 25 + (idx % 4) * 15,
         fullMark: 100
       }

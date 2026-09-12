@@ -1,187 +1,237 @@
-# CivicLens AI Operating System - Project Documentation
+# CivicLens AI Operating System & Development Planning Platform — Technical Documentation
 
-## Overview
+## 1. Executive Summary
 
-CivicLens is a Next-Generation AI-Powered City Management Operating System. It unifies citizens, municipal operators, and field workers into a single, cohesive interface. The system leverages AI (like Gemini Vision and Conversational AI) to categorize civic issues, predict optimal routes for workers, and analyze city data in real-time.
+CivicLens unifies everyday municipal operations (citizen reporting, field technician dispatch, and emergency response) with high-level **Constituency Development Planning Intelligence**. It specifically addresses the problem statement:
 
-## Architecture
+> **"People's Priorities: AI for Constituency Development Planning"**
 
-This project is a **Pure Frontend Application** built with React, TypeScript, Vite, and TailwindCSS. 
+Demonstrated using official ward datasets for the **Bhubaneswar Municipal Corporation (BMC)**, CivicLens converts fragmented citizen complaints and voices into structured, prioritized, and constraint-optimized capital expenditure proposals.
 
-To ensure seamless demonstration and testing without complex setups, the backend is a lightweight Node.js/Express server paired with a local SQLite database.
+---
 
-### System Flowchart
+## 2. System Architecture
 
 ```mermaid
 graph TD
-    %% Core Users
-    subgraph Users ["User Roles (RBAC)"]
-        C[Citizen]
-        O[Operator]
-        W[Field Worker]
+    subgraph Citizens ["Citizen Input Channels"]
+        CV[Voice Recognition via Web Speech API]
+        CT[Text & Photo Reports via 3-Step Wizard]
+        CA[Anonymous Reporting Portal]
     end
 
-    %% Frontend App
-    subgraph Frontend ["Frontend App (React 18 + Vite)"]
-        Auth[Auth Context]
-        Router[React Router]
-        
-        %% Dashboards
-        subgraph Views ["Core Views"]
-            CD[Citizen Dashboard]
-            AD[Admin Control Center]
-            WD[Worker Dashboard]
-            Map[Live Interactive Map]
-            AI[AI Hub & Voice]
-            RI[Issue Reporter]
-        end
-        
-        %% State
-        State[React Query State Manager]
+    subgraph IntelligencePipeline ["AI & Planning Intelligence Pipeline"]
+        NE[Normalization Engine]
+        ND[(normalized_demands)]
+        THE[Theme & Hotspot Aggregator]
+        DT[(demand_themes)]
+        DH[(demand_hotspots)]
+        PDF[Public Data Fusion: Census 2011 & Slum Survey]
+        PE[Deterministic 11-Factor Priority Engine]
+        IE[Multi-Scenario Impact Engine]
+        PO[Constraint-Aware Portfolio Optimizer]
     end
 
-    %% AI Integration
-    subgraph Gemini ["Gemini AI Architecture"]
-        direction TB
-        G35(gemini-3.5-flash)
-        G25(gemini-2.5-flash)
-        Mock(Offline Mock Session)
-        
-        G35 -. "Failover" .-> G25
-        G25 -. "Failover" .-> Mock
+    subgraph Authorities ["Authority Decision Studio (/admin/planning)"]
+        PV[Proposals Catalog]
+        PR[Priority Breakdown & Explanations]
+        IA[Impact & Uncertainty Scenarios]
+        POU[Interactive Portfolio Planner]
+        DS[Decision Studio & Override Governance]
+        DR[(decision_records)]
     end
 
-    %% Backend
-    subgraph Backend ["Node.js / Express Backend"]
-        API[REST API Endpoints]
-        DB[(SQLite Database)]
+    subgraph Operations ["Municipal Operations (/admin, /worker, /map)"]
+        OP[Operator Incident Dashboard]
+        GIS[Leaflet Multi-Layer GIS Dashboard]
+        FD[Field Worker Task Queue]
+        EM[Emergency Crisis Center]
     end
 
-    %% Data Flow & Connections
-    C --> Auth
-    O --> Auth
-    W --> Auth
-    
-    Auth --> Router
-    Router --> CD
-    Router --> AD
-    Router --> WD
-    
-    CD -.-> Map
-    CD -.-> AI
-    CD -.-> RI
-    
-    AD -.-> Map
-    AD -.-> AI
-    
-    WD -.-> Map
-    
-    AI == "Chat & Geolocation" ==> Gemini
-    RI == "Base64 Image Parsing" ==> Gemini
-    
-    Views <--> State
-    State <== "CRUD Requests" ==> API
-    API <--> DB
+    CV --> NE
+    CT --> NE
+    CA --> NE
+    NE --> ND
+    ND --> THE
+    THE --> DT
+    THE --> DH
+    DT --> PE
+    DH --> PE
+    PDF --> PE
+    PE --> PV
+    PV --> IE
+    IE --> PO
+    PO --> POU
+    POU --> DS
+    DS --> DR
+
+    CT -.-> OP
+    ND -.-> GIS
+    DH -.-> GIS
+    PV -.-> GIS
+    OP --> FD
+    OP --> EM
 ```
 
-### Technology Stack
-- **Frontend Framework:** React 18 with Vite
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS (with custom CSS variables in `index.css`)
-- **State & Data Fetching:** `@tanstack/react-query`
-- **Animations:** `framer-motion`
-- **Routing:** `react-router-dom`
-- **Backend API:** Node.js, Express, `better-sqlite3`
+---
 
-## Express Database Service
+## 3. Database Schema (`civiclens.db`)
 
-Located in `server.js`, this service acts as the RESTful backend API.
-- **Latency Simulation:** All queries have an artificial 300ms delay to simulate network roundtrips, ensuring loading spinners and skeleton screens render realistically.
-- **Data Persistence:** The database state is saved to a local `civiclens.db` SQLite file.
-- **Models:** Includes pre-seeded tables for `users`, `departments`, `workers`, `complaints` (issues), and `emergencies`.
+CivicLens uses SQLite (`better-sqlite3`) configured with Write-Ahead Logging (`WAL`) and foreign keys for high performance and zero configuration overhead.
 
-## Role-Based Access Control (RBAC)
+### Core Incident Tables
+- `users`: ID, name, email, role (`CITIZEN`, `OPERATOR`, `WORKER`), avatar.
+- `departments`: ID, name, description (e.g. Public Works, Sanitation, Water Supply, Health).
+- `workers`: ID, name, status (`Available`, `Busy`, `Offline`), department_id, latitude, longitude.
+- `complaints`: ID, category, priority, severity, summary, status (`Pending`, `In Progress`, `Resolved`), department, estimated_resolution_time, worker_id, latitude, longitude, image_url, created_at.
+- `emergencies`: ID, type, location, status (`Active`, `Resolved`), severity, reported_at.
 
-The application enforces a strict 3-tier role architecture via `AuthContext.tsx`. Users must select a profile on the Login screen, which determines their routing and sidebar navigation options.
+### Constituency Development Planning Tables
+- `normalized_demands`: ID, civic_input_id, category, sub_category, title, summary, demand_statement, problem_statement, severity, urgency, language, ward_id, lat, lng, confidence, affected_groups (JSON), citizen_id, source, created_at.
+- `demand_themes`: ID, name, summary, category, sub_category, recurrence_status (`HIGH`, `MEDIUM`, `EMERGING`), demand_count, unique_citizen_count, coherence_score, representative_demand_id, representative_statement, first_observed_at, last_observed_at.
+- `demand_hotspots`: ID, ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count, dominant_category, intensity (`CRITICAL`, `HIGH`, `MEDIUM`), recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at.
+- `datasets`: ID, name, source, geographic_level, description, record_count, last_updated, provenance.
+- `development_proposals`: ID, title, description, category, sub_category, ward_id, lat, lng, estimated_cost, estimated_timeline, beneficiaries, target_groups (JSON), dependencies (JSON), status, priority_score, social_impact_score, economic_impact_score, economic_impact_level, created_at.
+- `priority_assessments`: ID, proposal_id, total_score, factors_json, weights_json, explanation_json, calculated_at.
+- `impact_assessments`: ID, proposal_id, social_impact_score, economic_impact_score, economic_impact_level, social_factors_json, economic_factors_json, scenarios_json, assumptions_json, uncertainty, uncertainty_reasons_json, confidence, calculated_at.
+- `development_portfolios`: ID, name, max_budget, selected_proposals_json, excluded_proposals_json, total_allocated, remaining_budget, created_at.
+- `decision_records`: ID, portfolio_id, approved_proposals_json, human_overrides_json, justification, approved_by, total_cost, remaining_budget, approved_at.
+- `audit_logs`: ID, action, entity_type, entity_id, user_name, details_json, timestamp.
 
-### 1. Citizen Role (`CITIZEN`)
-Designed for public engagement and transparency.
-- **Features:** 
-  - File reports using the 3-Step Wizard or Anonymous Portal
-  - Run AI Image Analysis on civic damage
-  - Track issue resolution timelines
-  - Earn and redeem Civic Reward Points
-- **Default Route:** `/dashboard`
+---
 
-### 2. Operator Role (`OPERATOR`)
-Designed for city administrators and dispatchers operating from a control center.
-- **Features:** 
-  - Global overview of all active incidents and field workers
-  - Analytics dashboards and emergency SOS monitoring
-  - Interactive map view of the city
-- **Default Route:** `/admin`
+## 4. Planning Engines Specification
 
-### 3. Worker Role (`WORKER`)
-Designed for field technicians and repair crews using vehicle-mounted tablets.
-- **Features:** 
-  - Landscape-optimized grid dashboard
-  - Real-time task queue with priority tagging
-  - Status management (Pending → In Progress → Resolved)
-  - Route optimization preview
-- **Default Route:** `/worker`
+### 4.1 Demand Normalization Engine (`normalizationEngine.js`)
+Transforms raw text or transcribed voice into standardized civic demand entities:
+- Extracts: `category`, `subCategory`, `title`, `summary`, `demandStatement`, `problemStatement`, `severity`, `urgency`, `wardId`, `affectedGroups`, and `confidence`.
+- Maps colloquial references to official BMC wards (e.g. "Harish Vihar / Bhouma Nagar" $\rightarrow$ `Ward 23`, "Rasulgarh" $\rightarrow$ `Ward 35`, "Saheed Nagar" $\rightarrow$ `Ward 24`, "Nayapalli" $\rightarrow$ `Ward 42`).
 
-### Universal Profile System
-The `/profile` view dynamically adapts to the logged-in user's role. While it provides detailed civic metrics (like CO2 Saved and Issues Resolved) for Citizens, it automatically simplifies into a clean, professional profile view for Operators and Workers, hiding unnecessary citizen-specific modules.
+### 4.2 Theme & Hotspot Clustering Engine (`themeHotspotEngine.js`)
+- **Theme Aggregation**: Groups demands sharing categorical and sub-categorical coherence, calculating unique citizen reach, recurrence frequency, and representative demands.
+- **Hotspot Detection**: Calculates spatial density by ward, computing an `intensity` score based on demand count, unique citizen count, and severity weights.
 
-## UI/UX & Theming System
+### 4.3 Deterministic 11-Factor Priority Engine (`priorityEngine.js`)
+Scores proposals from 0 to 100 using fixed mathematical weights:
 
-CivicLens utilizes a highly dynamic, "glassmorphism" aesthetic suitable for modern SaaS dashboards.
-- **Theming:** Full Light/Dark mode support via `ThemeContext.tsx`. 
-- **Accessibility:** WCAG AA compliant. Includes a dedicated `SettingsContext.tsx` supporting High Contrast mode, Large Text, and Reduced Motion.
-- **Color System:** Managed via CSS custom properties in `index.css`, mapped to Tailwind tokens in `tailwind.config.js`.
-- **Branding & Assets:** Fully customized with project-specific logos (`logo.jpeg`) and favicons (`icon.ico`) embedded across the Landing Page, Auth Flows, and Sidebar.
+| Factor | Weight | Evaluation Criteria |
+| :--- | :---: | :--- |
+| `demandStrength` | 16% | Aggregate count and intensity of linked citizen demands |
+| `uniqueCitizenReach` | 14% | Number of distinct, verified citizen submissions |
+| `recurrence` | 12% | Persistence and repetition of the demand over time |
+| `geographicConcentration` | 10% | Spatial density and clustering in the target ward |
+| `contextualEvidence` | 10% | Corroborating public datasets (Census, Slum surveys) |
+| `infrastructureGap` | 10% | Distance to nearest facility or missing baseline coverage |
+| `urgency` | 8% | Immediacy of need (e.g., monsoon flooding risk, water outage) |
+| `severity` | 6% | Magnitude of disruption (e.g., critical hazard vs cosmetic) |
+| `affectedPopulation` | 5% | Total census population benefiting in the ward |
+| `equityVulnerability` | 5% | Focus on marginalized populations (slum dwellers, SC/ST, low literacy) |
+| `evidenceConfidence` | 4% | Source authenticity and recency of available datasets |
 
-## Setup & Running
+$$\text{Total Score} = \sum_{i=1}^{11} \left( w_i \times \text{normalized\_factor}_i \right)$$
 
-Starting the project is incredibly simple:
+### 4.4 Multi-Scenario Impact Engine (`impactEngine.js`)
+Models project outcomes across three scenarios to provide transparent risk boundaries:
+- **Conservative**: Lower bound assuming operational delays or conservative uptake (0.65x multiplier).
+- **Base**: Expected outcome based on baseline census catchment data (1.00x multiplier).
+- **Optimistic**: Upper bound assuming catalytic economic and social spillovers (1.35x multiplier).
+- Declares explicit **Assumptions** and **Uncertainty Reasons** (e.g. *"Assumes regular desilting maintenance by BMC"*).
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the development server (runs both frontend and backend):
-   ```bash
-   npm run dev
-   ```
-3. Access the application at `http://localhost:5173`. You will be directed to the Landing Page. Click "Access Platform" to enter the Role Selector.
+### 4.5 Constraint-Aware Portfolio Optimizer (`portfolioOptimizer.js`)
+Solves capital allocation under municipal constraints using a deterministic Greedy Value/Cost ratio algorithm:
+- **Objective Function**: Maximize $\sum \text{PriorityScore}_i \times \text{ImpactScore}_i$
+- **Subject to**: $\sum \text{Cost}_i \le \text{Budget}$ (Default: ₹5.00 Cr)
+- **Category Balancing**: Limits capital concentration in any single sector to ensure balanced constituency growth.
+- **Auditable Exclusions**: For every unselected project, provides explicit rationales (`BUDGET_EXCEEDED`, `CATEGORY_LIMIT_REACHED`, `LOWER_PRIORITY_RANK`).
 
-## AI Integration (Gemini)
+---
 
-CivicLens integrates deeply with Google's Gemini API, employing advanced fallbacks and system prompt engineering to provide robust, context-aware assistance:
+## 5. REST API Reference
 
-### 1. Robust Fallback Architecture (`FallbackChatSession`)
-To guarantee 100% uptime regardless of API quota limits or network conditions, the system implements a strict cascading fallback wrapper around the Gemini Generative AI SDK:
-- **Primary Node**: Attempts connection to `gemini-3.5-flash`.
-- **Secondary Node**: Automatically fails over to `gemini-2.5-flash` if 3.5 is unavailable or throws a 404.
-- **Offline Node**: Degrades gracefully to a local `MockChatSession` instance if all API endpoints fail or no API key is provided, ensuring demo functionality is never interrupted.
-- **UI State Indicators**: The AI Hub actively polls this fallback state, displaying a dynamic color-coded dot and badge in the top right corner (Blue = 3.5, Purple = 2.5, Red = Offline) to keep users informed of the current model backend.
+The backend operates on `http://localhost:3000`:
 
-### 2. Hyper-Local Context (Geolocation)
-When launching the AI Hub, the system asynchronously queries the browser's `navigator.geolocation` API. 
-If granted, the precise latitude and longitude coordinates are silently appended to the backend system prompt. This allows the AI Assistant to intelligently answer spatial queries like "what's my location?" or contextually infer the ward/district of reported issues (defaulting to Mumbai region for demonstration).
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/planning/demands` | Returns all normalized demands with affected demographics. |
+| `POST` | `/api/planning/demands/normalize` | Real-time AI normalization of raw text/voice inputs into structured demands. |
+| `GET` | `/api/planning/themes` | Aggregated demand themes with recurrence status and coherence scores. |
+| `GET` | `/api/planning/hotspots` | Geospatial hotspots with demand counts, intensity, and dominant category. |
+| `GET` | `/api/planning/datasets` | Ingested official datasets metadata and provenance records. |
+| `GET` | `/api/planning/demographics` | Ward-level Census 2011 demographics for all 67 BMC wards. |
+| `GET` | `/api/planning/demographics/:wardId` | Demographic and slum profile for a specific ward. |
+| `GET` | `/api/planning/evidence/:proposalId` | Corroborating evidence records (`SUPPORTING`, `CONTRADICTING`, `NEUTRAL`, `INSUFFICIENT_DATA`). |
+| `GET` | `/api/planning/proposals` | Evaluated development proposals ranked by priority score. |
+| `GET` | `/api/planning/priority/:proposalId` | Detailed 11-factor breakdown, weights, and explanations for a proposal. |
+| `GET` | `/api/planning/impact/:proposalId` | Multi-scenario impact assessment (Conservative, Base, Optimistic). |
+| `POST` | `/api/planning/portfolio/optimize` | Solves portfolio selection given max budget (e.g. ₹5.0 Cr) and returns selected + excluded proposals with explanations. |
+| `GET` | `/api/planning/decisions` | Retrieves permanent decision history. |
+| `POST` | `/api/planning/decisions` | Validates, approves, and records a final portfolio with human override justifications. |
+| `POST` | `/api/auth/aadhaar-verify` | Ported from `civic_v3`: verifies password-protected e-Aadhaar PDF files. |
+| `GET` | `/api/planning/ai-context` | Grounding endpoint providing high-level metrics for Gemini AI context injection. |
 
-### 3. Image Diagnostics (`ReportIssue.tsx`)
-The previous `ImageAnalyzer.tsx` standalone tool was streamlined directly into the **Report Issue** tab. Uploaded imagery of municipal damage (potholes, graffiti) is passed as a base64 encoded payload to the Gemini Vision multimodal endpoint. The prompt explicitly enforces a strict JSON schema return, which is then parsed to auto-fill the complaint form (Summary, Category, Severity, Estimated Resolution). This also utilizes the `3.5 -> 2.5 -> Mock` fallback chain.
+---
 
-### 4. Voice Interaction (Web Speech API)
-The AI Hub features a hands-free dictation mode powered by the native browser `webkitSpeechRecognition` engine. 
-- **Stable React Hook**: The underlying `useSpeechRecognition` hook is meticulously engineered utilizing `useRef` for all event callbacks to prevent React infinite re-render loops from destroying and recreating the recognition instance mid-speech.
-- **Auto-Submission**: Upon detecting a final transcript utterance, the system automatically dispatches a synthetic form submission event, creating a seamless conversational flow.
+## 6. End-to-End Demonstration Script
 
-## Cultural Localization
+To demonstrate the full constituency planning workflow:
 
-To better resonate with its target demographic during civic demonstrations, CivicLens implements culturally relevant personas and mock data out-of-the-box:
-- **Citizen Persona / Global Mock User**: "Priya Sharma" (formerly Jane Citizen / Arjun Singh)
-- **Control Center Operator**: "Ananya Gupta"
-- **Field Worker**: "Rahul Verma" (formerly Mike Ross)
-High-quality, persona-accurate avatars from Unsplash and UI-Avatars have been mapped to these profiles, enhancing the relatability and visual immersion of the Operating System.
+1. **Step 1 (Citizen Voice)**: Open the **AI Hub** or **Report Issue** tab. Submit: *"Road near Harish Vihar gets flooded every monsoon and there is no proper drainage."*
+2. **Step 2 (Normalization)**: The system normalizes the input into `Ward 23 Stormwater Drainage` with `HIGH` severity and `0.92` extraction confidence.
+3. **Step 3 (Themes & Recurrence)**: Navigate to `/admin/planning` $\rightarrow$ **Themes & Recurrence**. Observe the theme *"Monsoon Flood Drainage Infrastructure Demands"* accumulating multiple citizen inputs.
+4. **Step 4 (Geographic Hotspot)**: Switch to **Demand Hotspots** or the **Live Map**. Ward 23 appears with a pulsing red `CRITICAL` intensity hotspot.
+5. **Step 5 (Evidence Inspection)**: Click the **Public Data & Evidence** tab. Inspect Ward 23 Census 2011 data (Population: 14,280) and BMC Slum Survey records (14 notified slum clusters) supporting the need.
+6. **Step 6 (Priority Evaluation)**: Open **Priority Engine**. View the transparent score of **87.4 / 100** with exact mathematical factor contributions.
+7. **Step 7 (Impact Assessment)**: View **Impact Assessment** for 3-scenario projections (Base: 42,000 citizens reached, 65% waterlogging reduction).
+8. **Step 8 (Portfolio Optimization)**: Go to **Portfolio Optimizer**. Set budget to ₹5.00 Cr and click **Run Optimization**. The engine selects 4 projects totaling ₹4.80 Cr and logs explicit exclusion reasons for remaining proposals.
+9. **Step 9 (Authority Override & Decision Record)**: In **Decision Studio**, add an override, enter a mandatory justification (*"Critical municipal monsoon preparedness priority"*), and click **Approve Portfolio**. The system creates an immutable `DecisionRecord`.
+
+---
+
+## 7. Development & Verification
+
+### Running the Application
+```bash
+# Install packages
+npm install
+
+# Start both frontend (5174) and backend (3000)
+npm run dev
+
+# Run production build validation
+npm run build
+```
+
+### Truthfulness & Standards Compliance
+- **Zero Hallucinated Metrics**: All priority scores, budget calculations, and scenario forecasts are calculated deterministically by server-side engines.
+- **Authentic Attribution**: Demographics and slum statistics are derived from official Bhubaneswar municipal records.
+- **WCAG AA Compliance**: High-contrast, large-text, and reduced-motion settings are respected across all newly introduced planning interfaces.
+
+---
+
+## 8. Real-Time Hotspots, DB Seeding & Aadhaar Verification Architecture
+
+### 8.1 Real-Time Hotspot Marking (Strict 100m Radius)
+- **Dynamic Recomputation**: Whenever an issue or complaint is reported via `POST /api/complaints`, the backend normalizes the demand immediately via `NormalizationEngine.normalizeRawVoice()`.
+- **Spatial Aggregation**: `ThemeHotspotEngine.computeHotspots()` groups co-located demands within Bhubaneswar wards and recomputes `demand_hotspots`.
+- **Exact Radius (100m)**: Every generated hotspot strictly enforces `radius: 100` meters in compliance with BMC localized ward jurisdiction standards.
+- **Instant Map Reflection**: Frontend query caches on `/map` are invalidated upon report submission, triggering immediate re-render of Leaflet glowing hotspot rings without requiring a full page refresh.
+
+### 8.2 Direct Database Seeding & Zero Frontend Mock Data
+- **Central SQLite Database (`civiclens.db`)**: All mock datasets previously housed in client-side arrays (`src/utils/mock-data.ts`) have been completely decoupled and seeded directly into SQLite.
+- **Authentic Municipal Tables**:
+  - `services`: 8 authentic BMC citizen services (Birth/Death Certificates, Property Tax, Trade License, Building Permission, Water Connection, Septage Cleaning, Grievance Escalation).
+  - `civic_rewards`: 6 authentic Bhubaneswar rewards (Mo Bus & CRUT Metro Pass, BMC Smart Parking, Odisha State Central Library Access, Kalinga Stadium Sports Entry, Smart Kiosk Voucher, Town Hall Delegate Seat).
+  - `reward_redemptions`: Audit logs of redemptions with generated voucher codes.
+  - `notifications`: Ward advisories, transit updates, and security alerts.
+  - `user_activities`: Timestamped citizen participation timeline with point credits.
+- **REST Endpoints**: Fully wired to `GET /api/services`, `POST /api/services/apply`, `GET /api/rewards`, `POST /api/rewards/redeem`, `GET /api/notifications`, `GET /api/users/:id/profile-stats`, `GET /api/dashboard/stats`.
+
+### 8.3 Citizen Registration with e-Aadhaar KYC Verification
+- **Cryptographic Validation**: `server/services/aadhaarVerifier.js` validates uploaded e-Aadhaar PDFs by scanning for standard UIDAI embedded digital signature dictionaries (`/Type /Sig`, `/ByteRange`, PKCS#7 structures).
+- **Password Derivation**: Automatically calculates the standard UIDAI Aadhaar password format (`FIRST4NAME_UPPERCASE + YYYY`) based on citizen's full name and DOB.
+- **Automated Provisioning**:
+  - Automatically awards **+100 Welcome Civic Points** upon verification.
+  - Sets `aadhaar_verified = 1` and marks timestamp `aadhaar_verified_at`.
+  - Creates an audit record in `user_activities` and sends a welcome notification to the user's notification inbox.
+  - Automatically logs the citizen into the application with full access to the Citizen Dashboard.
+

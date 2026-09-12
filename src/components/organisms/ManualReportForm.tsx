@@ -218,6 +218,25 @@ export function ManualReportForm({
             )}
           </button>
         </div>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {[
+            { name: "Ward 23 (Bhouma Nagar)", coords: "20.2785, 85.8324" },
+            { name: "Ward 24 (Saheed Nagar)", coords: "20.2882, 85.8501" },
+            { name: "Ward 35 (Rasulgarh)", coords: "20.2961, 85.8712" },
+            { name: "Ward 42 (Nayapalli)", coords: "20.3015, 85.8152" },
+            { name: "Ward 12 (Chandrasekharpur)", coords: "20.3245, 85.8182" },
+            { name: "Ward 31 (Old Town)", coords: "20.2421, 85.8354" }
+          ].map(w => (
+            <button
+              key={w.name}
+              type="button"
+              onClick={() => setLocation(`${w.name} - ${w.coords}`)}
+              className="text-[11px] px-2 py-0.5 rounded-full bg-foreground/5 hover:bg-primary/20 text-on-surface-variant hover:text-primary transition-colors border border-foreground/10"
+            >
+              + {w.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Submit */}

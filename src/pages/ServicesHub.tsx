@@ -7,14 +7,8 @@ import { Button } from "@/components/atoms/Button"
 import { ServiceCard, type ServiceData } from "@/components/ui/ServiceCard"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/services/api"
-import { cn } from "@/utils/utils"
-
-const DEFAULT_SERVICES: ServiceData[] = [
-  { id: '1', title: 'Birth Certificate', icon: 'description', desc: 'Official vital record registration and issuance for new borns.', time: '3-5 Days', elig: 'Registered Residents', docs: ['home_health', 'badge', 'calendar_today'], category: 'Certificates' },
-  { id: '2', title: 'Death Certificate', icon: 'heart_broken', desc: 'Secure record issuance for official death registration purposes.', time: '2-3 Days', elig: 'Next of Kin', docs: ['article', 'medical_information'], category: 'Certificates' },
-  { id: '3', title: 'Property Tax', icon: 'payments', desc: 'Annual property valuation and tax payment for land owners.', time: 'Instant', elig: 'Property Owners', docs: ['location_on', 'receipt_long'], category: 'Payments' },
-  { id: '4', title: 'Water Bill', icon: 'water_drop', desc: 'Consolidated water usage billing and online payment portal.', time: 'Instant', elig: 'Connection Owners', docs: ['account_balance', 'pin'], category: 'Utility Bills' },
-]
+import { useNotifications } from "@/contexts/NotificationContext"
+import { useAuth } from "@/contexts/AuthContext"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,6 +22,8 @@ const itemVariants = {
 
 export function ServicesHub() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { addNotification } = useNotifications()
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All Services")
   const [bookmarks, setBookmarks] = useState<string[]>([])
@@ -35,22 +31,22 @@ export function ServicesHub() {
   // Modals state
   const [applyingService, setApplyingService] = useState<ServiceData | null>(null)
   const [applicationStep, setApplicationStep] = useState(1)
+  const [isSubmittingApp, setIsSubmittingApp] = useState(false)
 
-  const { data: rawServices } = useQuery({
+  const { data: rawServices = [], isLoading } = useQuery({
     queryKey: ['services'],
     queryFn: api.getServices
   })
   
   const SERVICES = useMemo(() => {
-    if (!rawServices || rawServices.length === 0) return DEFAULT_SERVICES
     return rawServices.map((rs: any) => ({
       id: rs.id.toString(),
       title: rs.title,
-      icon: 'description',
+      icon: rs.icon || 'description',
       desc: rs.description,
       time: rs.processing_time,
-      elig: 'General Public',
-      docs: ['article'],
+      elig: rs.eligibility || 'Registered Residents',
+      docs: rs.required_docs || ['article'],
       category: rs.category
     }))
   }, [rawServices])
@@ -309,8 +305,34 @@ export function ServicesHub() {
                   {applicationStep < 3 ? (
                     <Button className="px-8" onClick={() => setApplicationStep(s => s + 1)}>Continue</Button>
                   ) : (
-                    <Button className="px-8 bg-gradient-to-r from-primary to-secondary text-on-primary" onClick={() => setApplyingService(null)}>
-                      Submit Application
+                    <Button 
+                      className="px-8 bg-gradient-to-r from-primary to-secondary text-on-primary" 
+                      disabled={isSubmittingApp}
+                      onClick={async () => {
+                        setIsSubmittingApp(true)
+                        try {
+                          await api.applyService({
+                            serviceId: parseInt(applyingService.id, 10),
+                            userId: user?.id || 1,
+                            applicantName: user?.name || "Priya Sharma",
+                            contactNumber: "+91 94370 12345",
+                            details: { category: applyingService.category }
+                          })
+                          addNotification({
+                            title: "Application Submitted",
+                            message: `Your application for ${applyingService.title} has been received. +20 civic points credited!`,
+                            type: "success",
+                            group: "system"
+                          })
+                          setApplyingService(null)
+                        } catch (err: any) {
+                          alert("Failed to submit service application: " + err.message)
+                        } finally {
+                          setIsSubmittingApp(false)
+                        }
+                      }}
+                    >
+                      {isSubmittingApp ? "Submitting..." : "Submit Application (+20 pts)"}
                     </Button>
                   )}
                 </div>
