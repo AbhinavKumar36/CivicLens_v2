@@ -310,6 +310,12 @@ try {
   if (!complaintCols.includes('image_url')) {
     db.exec('ALTER TABLE complaints ADD COLUMN image_url TEXT;');
   }
+  if (!complaintCols.includes('confirmation_photo_url')) {
+    db.exec('ALTER TABLE complaints ADD COLUMN confirmation_photo_url TEXT;');
+  }
+  if (!complaintCols.includes('confirmation_uploaded_at')) {
+    db.exec('ALTER TABLE complaints ADD COLUMN confirmation_uploaded_at TEXT;');
+  }
 
   const userCols = db.pragma('table_info(users)').map(c => c.name);
   if (!userCols.includes('aadhaar_number')) {
@@ -1231,6 +1237,13 @@ app.post('/api/complaints', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: category, summary' });
     }
 
+    // Auto-assign to the first available worker if none specified
+    let assignedWorkerId = worker_id || null;
+    if (!assignedWorkerId) {
+      const firstWorker = db.prepare('SELECT id FROM workers ORDER BY id LIMIT 1').get();
+      assignedWorkerId = firstWorker ? firstWorker.id : null;
+    }
+
     const insert = db.prepare(`
       INSERT INTO complaints (category, priority, severity, summary, status, department, estimated_resolution_time, worker_id, latitude, longitude, image_url, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1238,7 +1251,7 @@ app.post('/api/complaints', (req, res) => {
 
     const result = insert.run(
       category, priority || 'Low', severity || 'Minor', summary, 'Pending',
-      department || 'General', estimated_resolution_time || 'Unknown', worker_id || null,
+      department || 'General', estimated_resolution_time || 'Unknown', assignedWorkerId,
       latitude || null, longitude || null, image_url || null, new Date().toISOString()
     );
 
@@ -1310,6 +1323,23 @@ app.post('/api/complaints', (req, res) => {
       });
       updateHotspotsTx();
 
+      // If the complaint has specific coordinates, also insert a direct point-level hotspot
+      // so it's immediately visible on the map regardless of ward clustering
+      if (latitude && longitude) {
+        const pointWardId = normalized.wardId || 'Ward Unknown';
+        const existingPointHotspot = db.prepare(
+          "SELECT id FROM demand_hotspots WHERE ABS(center_lat - ?) < 0.0005 AND ABS(center_lng - ?) < 0.0005 LIMIT 1"
+        ).get(latitude, longitude);
+        if (!existingPointHotspot) {
+          db.prepare(`
+            INSERT INTO demand_hotspots (
+              ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
+              dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
+            ) VALUES (?, ?, ?, 100, 1, 1, ?, 0.5, 'EMERGING', 'LOW', 0.75, 'ACTIVE', ?, ?)
+          `).run(pointWardId, latitude, longitude, category, new Date().toISOString(), new Date().toISOString());
+        }
+      }
+
       const activeHotspots = db.prepare("SELECT * FROM demand_hotspots WHERE status = 'ACTIVE'").all();
       matchedHotspot = activeHotspots.find(h => h.ward_id === normalized.wardId) || activeHotspots[0] || null;
 
@@ -1358,6 +1388,37 @@ app.patch('/api/complaints/:id', (req, res) => {
     const complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(req.params.id);
     res.json(complaint);
   } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Worker: Upload confirmation photo for a complaint
+app.patch('/api/complaints/:id/upload-photo', (req, res) => {
+  try {
+    const { photoBase64, workerId } = req.body;
+    if (!photoBase64) {
+      return res.status(400).json({ error: 'photoBase64 is required' });
+    }
+    const complaintId = req.params.id;
+    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(complaintId);
+    if (!complaint) return res.status(404).json({ error: 'Complaint not found' });
+
+    db.prepare(
+      'UPDATE complaints SET confirmation_photo_url = ?, confirmation_uploaded_at = ?, status = CASE WHEN status = \'Pending\' THEN \'In Progress\' ELSE status END WHERE id = ?'
+    ).run(photoBase64, new Date().toISOString(), complaintId);
+
+    // Award points to the worker's user if workerId is provided
+    if (workerId) {
+      const workerUser = db.prepare("SELECT id FROM users WHERE role = 'WORKER' LIMIT 1").get();
+      if (workerUser) {
+        db.prepare('UPDATE users SET points = COALESCE(points, 0) + 10 WHERE id = ?').run(workerUser.id);
+      }
+    }
+
+    const updated = db.prepare('SELECT * FROM complaints WHERE id = ?').get(complaintId);
+    res.json({ ...updated, message: 'Confirmation photo uploaded successfully.' });
+  } catch (err) {
+    console.error('Photo upload error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

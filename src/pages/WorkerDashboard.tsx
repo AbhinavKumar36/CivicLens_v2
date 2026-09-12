@@ -1,5 +1,5 @@
-import React from "react"
-import { motion } from "framer-motion"
+﻿import React, { useRef, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/services/api"
@@ -21,12 +21,139 @@ const itemVariants = {
   show: { opacity: 1, y: 0 }
 }
 
+function PhotoUploadModal({ job, onClose, onSuccess, workerId }) {
+  const fileInputRef = useRef(null)
+  const [preview, setPreview] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [error, setError] = useState(null)
+  const [markResolved, setMarkResolved] = useState(true)
+  const queryClient = useQueryClient()
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError("Photo must be under 5MB."); return }
+    setError(null)
+    const reader = new FileReader()
+    reader.onload = () => setPreview(reader.result)
+    reader.readAsDataURL(file)
+  }
+
+  const handleSubmit = async () => {
+    if (!preview) { setError("Please select a photo first."); return }
+    setIsUploading(true)
+    setError(null)
+    try {
+      await api.uploadConfirmationPhoto(job.id, preview, workerId)
+      if (markResolved) await api.updateComplaintStatus(job.id, "Resolved")
+      queryClient.invalidateQueries({ queryKey: ['complaints'] })
+      onSuccess()
+    } catch (e) {
+      setError("Upload failed. Please try again.")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      >
+        <motion.div
+          initial={{ scale: 0.92, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.92, opacity: 0 }}
+          className="w-full max-w-md bg-surface-container border border-foreground/10 rounded-3xl shadow-2xl overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-foreground/10">
+            <div>
+              <h2 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+                Upload Confirmation Photo
+              </h2>
+              <p className="text-xs text-on-surface-variant mt-0.5 truncate max-w-[280px]">{job.summary}</p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-foreground/10 text-on-surface-variant transition-colors">
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative w-full h-52 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${preview ? 'border-primary/40 bg-transparent' : 'border-foreground/20 bg-foreground/5 hover:bg-foreground/10 hover:border-primary/40'}`}
+            >
+              {preview ? (
+                <>
+                  <img src={preview} alt="Preview" className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-2xl">
+                    <span className="text-white text-sm font-bold bg-black/60 px-3 py-1.5 rounded-full">Change Photo</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-5xl text-on-surface-variant/50 mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>add_a_photo</span>
+                  <p className="text-sm font-semibold text-on-surface-variant">Tap to capture or select</p>
+                  <p className="text-xs text-on-surface-variant/60 mt-1">Camera · Gallery · Max 5MB</p>
+                </>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setMarkResolved(v => !v)}
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${markResolved ? 'bg-primary border-primary' : 'border-foreground/30 bg-foreground/5'}`}
+              >
+                {markResolved && <span className="material-symbols-outlined text-[14px] text-on-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Mark as Resolved</p>
+                <p className="text-xs text-on-surface-variant">Auto-update job status to Resolved</p>
+              </div>
+            </label>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm">
+                <span className="material-symbols-outlined text-[18px]">error</span>
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-foreground/15 text-on-surface-variant font-semibold text-sm hover:bg-foreground/10 transition-all">Cancel</button>
+              <button
+                onClick={handleSubmit}
+                disabled={!preview || isUploading}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${preview && !isUploading ? 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg shadow-primary/30 active:scale-95' : 'bg-foreground/10 text-on-surface-variant cursor-not-allowed'}`}
+              >
+                {isUploading ? (
+                  <><span className="w-4 h-4 border-2 border-on-primary/40 border-t-on-primary rounded-full animate-spin"></span>Uploading...</>
+                ) : (
+                  <><span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>cloud_upload</span>Submit Confirmation</>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 export function WorkerDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  
-  const handleStatusChange = async (jobId: number, newStatus: string) => {
+  const [uploadingJobId, setUploadingJobId] = useState(null)
+  const [successJobId, setSuccessJobId] = useState(null)
+
+  const handleStatusChange = async (jobId, newStatus) => {
     try {
       await api.updateComplaintStatus(jobId, newStatus)
       queryClient.invalidateQueries({ queryKey: ['complaints'] })
@@ -34,41 +161,36 @@ export function WorkerDashboard() {
       console.error("Failed to update job status:", e)
     }
   }
-  
-  // Query backend data
-  const { data: rawWorkers = [] } = useQuery({
-    queryKey: ['workers'],
-    queryFn: api.getWorkers
-  })
-  
-  const { data: rawComplaints = [], isLoading } = useQuery({
-    queryKey: ['complaints'],
-    queryFn: api.getComplaints
-  })
-  
-  const activeWorker = React.useMemo(() => {
-    // If logged in via AuthContext, try to match to a worker profile, else fallback to first
-    const matched = rawWorkers.find((w: any) => w.name === user?.name)
-    return matched || rawWorkers[0] || { 
-      id: 1, 
-      name: "Rahul Verma", 
-      status: "Busy", 
-      department: { name: "Transit" } 
-    }
-  }, [rawWorkers, user])
-  
-  // Filter complaints assigned to this worker
-  const workerJobs = React.useMemo(() => {
-    return rawComplaints.filter((c: any) => c.worker_id === activeWorker.id)
-  }, [rawComplaints, activeWorker])
 
-  const completedJobs = workerJobs.filter((j: any) => j.status === "Resolved" || j.status === "Closed").length;
-  const activeJobs = workerJobs.length - completedJobs;
+  const { data: rawWorkers = [] } = useQuery({ queryKey: ['workers'], queryFn: api.getWorkers })
+  const { data: rawComplaints = [], isLoading } = useQuery({ queryKey: ['complaints'], queryFn: api.getComplaints, refetchInterval: 5000 })
+
+  const activeWorker = React.useMemo(() => {
+    const matched = rawWorkers.find((w) => w.name === user?.name)
+    return matched || rawWorkers[0] || { id: 1, name: "Rahul Verma", status: "Busy", department: { name: "Transit" } }
+  }, [rawWorkers, user])
+
+  const workerJobs = React.useMemo(() => rawComplaints.filter((c) => c.worker_id === activeWorker.id), [rawComplaints, activeWorker])
+  const completedJobs = workerJobs.filter((j) => j.status === "Resolved" || j.status === "Closed").length
+  const activeJobs = workerJobs.length - completedJobs
+
+  const uploadingJob = workerJobs.find((j) => j.id === uploadingJobId)
 
   return (
     <div className="w-full h-full p-4 md:p-8 space-y-6">
-      
-      {/* Mobile Top Header (hidden on landscape/desktop) */}
+      {uploadingJobId !== null && uploadingJob && (
+        <PhotoUploadModal
+          job={uploadingJob}
+          workerId={activeWorker?.id}
+          onClose={() => setUploadingJobId(null)}
+          onSuccess={() => {
+            setSuccessJobId(uploadingJobId)
+            setUploadingJobId(null)
+            setTimeout(() => setSuccessJobId(null), 3000)
+          }}
+        />
+      )}
+
       <div className="md:hidden flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full overflow-hidden border border-primary/30 bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -79,7 +201,7 @@ export function WorkerDashboard() {
             <div className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
               <Label className="text-[10px] text-on-surface-variant uppercase tracking-wider block">
-                {activeWorker.department?.name || "General"} • {activeWorker.status}
+                {activeWorker.department?.name || "General"} - {activeWorker.status}
               </Label>
             </div>
           </div>
@@ -90,12 +212,8 @@ export function WorkerDashboard() {
         </div>
       </div>
 
-      {/* Landscape Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[calc(100vh-140px)]">
-        
-        {/* Left Column: Agenda & Route (Spans 5 cols) */}
         <div className="md:col-span-5 flex flex-col gap-6 h-full">
-          {/* Desktop Header */}
           <div className="hidden md:flex justify-between items-end">
             <div>
               <Headline level={1} className="text-3xl text-primary font-bold">{activeWorker.name}</Headline>
@@ -110,11 +228,8 @@ export function WorkerDashboard() {
             </div>
           </div>
 
-          <motion.section 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass rounded-3xl p-6 relative overflow-hidden bg-surface-container/60 border border-foreground/10 flex-shrink-0"
-          >
+          <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="glass rounded-3xl p-6 relative overflow-hidden bg-surface-container/60 border border-foreground/10 flex-shrink-0">
             <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-primary/10 blur-3xl rounded-full"></div>
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-6">
@@ -128,7 +243,6 @@ export function WorkerDashboard() {
                   <Label className="text-primary">v2.4 AI Active</Label>
                 </div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-foreground/5 rounded-2xl p-4 border border-foreground/5">
                   <Label className="text-on-surface-variant mb-1 block">Total Tasks</Label>
@@ -136,12 +250,9 @@ export function WorkerDashboard() {
                 </div>
                 <div className="bg-foreground/5 rounded-2xl p-4 border border-foreground/5">
                   <Label className="text-on-surface-variant mb-1 block">Remaining</Label>
-                  <Headline level={1} className="text-3xl text-tertiary">
-                    {activeJobs} Active
-                  </Headline>
+                  <Headline level={1} className="text-3xl text-tertiary">{activeJobs} Active</Headline>
                 </div>
               </div>
-              
               <button className="w-full h-14 bg-gradient-to-r from-primary-container to-secondary-container rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-on-primary" style={{ fontVariationSettings: "'FILL' 1" }}>route</span>
                 <span className="font-headline-md text-[18px] font-bold text-on-primary">Start Optimized Route</span>
@@ -149,23 +260,15 @@ export function WorkerDashboard() {
             </div>
           </motion.section>
 
-          {/* Map Preview Placeholder */}
           <GlassPanel className="flex-1 rounded-3xl overflow-hidden relative border border-foreground/10 min-h-[200px]">
             <div className="absolute inset-0 bg-surface-variant/30 flex flex-col items-center justify-center text-on-surface-variant/50 z-10">
               <span className="material-symbols-outlined text-4xl mb-2">map</span>
               <span className="text-sm font-bold uppercase tracking-widest">Live Routing</span>
             </div>
-            {/* Fake map lines */}
             <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, var(--up-primary-container) 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
           </GlassPanel>
 
-          {/* Performance Stats */}
-          <motion.section 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="grid grid-cols-2 gap-4 flex-shrink-0"
-          >
+          <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-2 gap-4 flex-shrink-0">
             <GlassPanel className="p-4 rounded-2xl bg-surface-container/40">
               <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-tertiary text-lg">bolt</span>
@@ -176,7 +279,6 @@ export function WorkerDashboard() {
                 <div className="bg-tertiary h-full" style={{ width: "94%" }}></div>
               </div>
             </GlassPanel>
-
             <GlassPanel className="p-4 rounded-2xl bg-surface-container/40">
               <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-primary text-lg">verified</span>
@@ -190,7 +292,6 @@ export function WorkerDashboard() {
           </motion.section>
         </div>
 
-        {/* Right Column: Task List (Spans 7 cols) */}
         <div className="md:col-span-7 flex flex-col h-full">
           <div className="flex justify-between items-center mb-4 px-2">
             <Headline level={3} className="text-[20px] flex items-center gap-2">
@@ -204,12 +305,7 @@ export function WorkerDashboard() {
             </div>
           </div>
 
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4"
-          >
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
             {isLoading ? (
               <p className="text-sm text-on-surface-variant p-4">Loading jobs...</p>
             ) : workerJobs.length === 0 ? (
@@ -219,28 +315,41 @@ export function WorkerDashboard() {
                 <p className="text-sm">No active jobs assigned to {activeWorker.name} right now.</p>
               </GlassPanel>
             ) : (
-              workerJobs.map((job: any) => {
+              workerJobs.map((job) => {
                 const isCritical = job.priority === "Critical" || job.priority === "High"
                 const isResolved = job.status === "Resolved" || job.status === "Closed"
-                const borderClass = isResolved ? "border-l-foreground/20 opacity-70" : isCritical ? "border-l-error" : "border-l-secondary-container"
+                const hasPhoto = !!job.confirmation_photo_url
+                const isJustSucceeded = successJobId === job.id
+                const borderClass = isResolved ? "border-l-foreground/20 opacity-80" : isCritical ? "border-l-error" : "border-l-secondary-container"
                 const chipClass = isCritical ? "bg-error-container text-on-error-container" : "bg-secondary-container/20 text-secondary"
-                
+
                 return (
                   <motion.div key={job.id} variants={itemVariants}>
-                    <GlassPanel hover className={cn("p-5 space-y-4 border-l-[6px] bg-surface-container/40 transition-all", borderClass)}>
+                    <GlassPanel hover className={`p-5 space-y-4 border-l-[6px] bg-surface-container/40 transition-all ${borderClass}`}>
+                      <AnimatePresence>
+                        {isJustSucceeded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/10 border border-secondary/20 text-secondary text-sm font-semibold"
+                          >
+                            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                            Photo confirmation uploaded successfully!
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       <div className="flex justify-between items-start">
-                        <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest", isResolved ? "bg-foreground/10 text-foreground" : chipClass)}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${isResolved ? 'bg-foreground/10 text-foreground' : chipClass}`}>
                           {job.priority} Priority
                         </span>
                         <div className="flex items-center gap-2">
                           <Label className="text-[10px] text-on-surface-variant uppercase font-bold mr-1">Status:</Label>
-                          <select 
+                          <select
                             value={job.status}
                             onChange={(e) => handleStatusChange(job.id, e.target.value)}
-                            className={cn(
-                              "bg-foreground/5 border border-foreground/10 rounded-lg focus:ring-0 text-xs font-bold p-1 outline-none cursor-pointer",
-                              isResolved ? "text-on-surface-variant" : "text-primary"
-                            )}
+                            className={`bg-foreground/5 border border-foreground/10 rounded-lg focus:ring-0 text-xs font-bold p-1 outline-none cursor-pointer ${isResolved ? 'text-on-surface-variant' : 'text-primary'}`}
                           >
                             <option value="Pending" className="bg-surface text-on-surface">Pending</option>
                             <option value="In Progress" className="bg-surface text-on-surface">In Progress</option>
@@ -249,7 +358,7 @@ export function WorkerDashboard() {
                           </select>
                         </div>
                       </div>
-                      
+
                       <div>
                         <Headline level={4} className="text-[20px] leading-tight mb-2">{job.summary}</Headline>
                         <div className="flex flex-wrap items-center gap-4 text-on-surface-variant">
@@ -267,18 +376,41 @@ export function WorkerDashboard() {
                           </div>
                         </div>
                       </div>
-                      
+
+                      {hasPhoto && (
+                        <div className="flex items-center gap-3 pt-1">
+                          <div className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-secondary/30 flex-shrink-0 shadow-md">
+                            <img src={job.confirmation_photo_url} alt="Confirmation" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-secondary flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                              Confirmation Photo Uploaded
+                            </p>
+                            <p className="text-[10px] text-on-surface-variant mt-0.5">
+                              {job.confirmation_uploaded_at ? new Date(job.confirmation_uploaded_at).toLocaleString() : "Just now"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-foreground/5">
-                        <button 
-                          className="px-4 py-2 text-primary hover:bg-primary/10 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2"
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setUploadingJobId(job.id)}
+                          className={`px-4 py-2 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2 ${hasPhoto ? 'bg-secondary/10 text-secondary hover:bg-secondary/20' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                         >
+                          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {hasPhoto ? "photo_camera" : "add_a_photo"}
+                          </span>
+                          {hasPhoto ? "Update Photo" : "Upload Photo"}
+                        </motion.button>
+                        <button className="px-4 py-2 text-primary hover:bg-primary/10 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2">
                           <span className="material-symbols-outlined text-base">directions</span>
                           Navigate
                         </button>
-                        <button 
-                          onClick={() => navigate(`/reports/${job.id}`)}
-                          className="px-4 py-2 bg-foreground/10 text-foreground hover:bg-foreground/20 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2"
-                        >
+                        <button onClick={() => navigate(`/reports/${job.id}`)} className="px-4 py-2 bg-foreground/10 text-foreground hover:bg-foreground/20 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2">
                           <span className="material-symbols-outlined text-base">visibility</span>
                           Details
                         </button>

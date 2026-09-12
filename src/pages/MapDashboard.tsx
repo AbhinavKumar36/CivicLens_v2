@@ -164,13 +164,9 @@ export function MapDashboard() {
   const handleLayerChange = (layer: MapLayerType) => {
     setActiveLayer(layer);
     setSelectedEntity(null);
-    if (layer === "ISSUES") {
-      setMapCenter(USER_LOCATION);
-      setMapZoom(13);
-    } else {
-      setMapCenter(BHUBANESWAR_CENTER);
-      setMapZoom(13);
-    }
+    // Always center on Bhubaneswar for all layers
+    setMapCenter(BHUBANESWAR_CENTER);
+    setMapZoom(13);
     setLocateTrigger(Date.now());
   };
 
@@ -200,7 +196,7 @@ export function MapDashboard() {
           {/* LAYER 1: CIVIC ISSUES */}
           {activeLayer === "ISSUES" && complaints.map((c: any) => {
             const { type, colorObj } = getCategoryIcon(c.category || "infrastructure");
-            const pos: [number, number] = c.latitude && c.longitude ? [c.latitude, c.longitude] : [19.0760, 72.8777];
+            const pos: [number, number] = c.latitude && c.longitude ? [c.latitude, c.longitude] : BHUBANESWAR_CENTER;
             return (
               <Marker 
                 key={`c-${c.id}`} 

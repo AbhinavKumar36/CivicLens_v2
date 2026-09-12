@@ -32,6 +32,10 @@ export const api = {
     const response = await apiClient.patch(`/complaints/${id}?status=${status}`);
     return response.data;
   },
+  uploadConfirmationPhoto: async (id: number, photoBase64: string, workerId?: number) => {
+    const response = await apiClient.patch(`/complaints/${id}/upload-photo`, { photoBase64, workerId });
+    return response.data;
+  },
   
   // SERVICES
   getServices: async () => {
