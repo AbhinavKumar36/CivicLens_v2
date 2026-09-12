@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import React, { useState, useMemo, useEffect } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/services/api"
 import { planningApi, type DevelopmentProposal, type DemandHotspot, type NormalizedDemand } from "@/services/planningService"
@@ -24,9 +24,20 @@ export type MapLayerType =
   | "PROPOSALS" 
   | "PORTFOLIO";
 
-const MAP_LAYERS: Array<{ id: MapLayerType; label: string; icon: string; desc: string }> = [
-  { id: "ISSUES", label: "Civic Issues", icon: "bug_report", desc: "Citizen incident reports" },
-  { id: "DEMANDS", label: "Dev Demands", icon: "forum", desc: "Normalized development demands" },
+export interface MapIncident {
+  id: number;
+  category: string;
+  priority: string;
+  summary: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+}
+
+const MAP_LAYERS = [
+  { id: "ISSUES", label: "Civic Issues", icon: "warning", desc: "Live citizen reported problems" },
+  { id: "DEMANDS", label: "Demands", icon: "dataset", desc: "Normalized multi-channel BMC demands" },
   { id: "HOTSPOTS", label: "Demand Hotspots", icon: "local_fire_department", desc: "Spatial intensity clusters" },
   { id: "PROPOSALS", label: "Proposals", icon: "assignment", desc: "Constituency development projects" },
   { id: "PORTFOLIO", label: "Portfolio", icon: "account_balance_wallet", desc: "Feasible funded allocation (₹5 Cr)" }
@@ -58,21 +69,20 @@ const createProposalIcon = (category: string, score: number, isFunded = true) =>
         <div class="absolute -inset-2 bg-primary/40 rounded-2xl blur-md opacity-50 group-hover:opacity-90 transition-opacity"></div>
         <div class="relative px-2.5 py-1.5 bg-surface-container-highest rounded-xl border-2 ${isFunded ? 'border-green-400' : 'border-orange-400'} shadow-2xl flex items-center gap-1.5 text-foreground">
           <span class="material-symbols-outlined text-[16px] text-primary">account_tree</span>
-          <span class="text-[11px] font-extrabold">${score.toFixed(0)}</span>
-          <span class="px-1 py-0.2 rounded text-[8px] font-bold ${badgeColor}">
-            ${isFunded ? 'FUNDED' : 'EXCL'}
-          </span>
+          <span class="text-xs font-bold">${category}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${badgeColor}">${score.toFixed(0)}</span>
         </div>
       </div>
     `,
-    iconSize: [85, 34],
-    iconAnchor: [42, 17],
+    iconSize: [120, 36],
+    iconAnchor: [60, 18]
   });
 };
 
 const getCategoryIcon = (category: string) => {
   const cat = category.toLowerCase();
   if (cat.includes("infrastructure") || cat.includes("road")) return { type: "construction", colorObj: { bg: "bg-primary", border: "border-primary", text: "text-primary" } };
+  if (cat.includes("environment") || cat.includes("park") || cat.includes("tree")) return { type: "park", colorObj: { bg: "bg-emerald-500", border: "border-emerald-500", text: "text-emerald-500" } };
   if (cat.includes("sanitation") || cat.includes("waste")) return { type: "delete", colorObj: { bg: "bg-secondary", border: "border-secondary", text: "text-secondary" } };
   if (cat.includes("drainage") || cat.includes("flood")) return { type: "waves", colorObj: { bg: "bg-blue-500", border: "border-blue-500", text: "text-blue-500" } };
   if (cat.includes("water")) return { type: "water_drop", colorObj: { bg: "bg-cyan-500", border: "border-cyan-500", text: "text-cyan-500" } };
@@ -92,6 +102,7 @@ function MapController({ center, zoom, trigger }: { center: [number, number], zo
 
 export function MapDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Layer Selection State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("HOTSPOTS");
@@ -106,6 +117,15 @@ export function MapDashboard() {
   const [mapCenter, setMapCenter] = useState<[number, number]>(BHUBANESWAR_CENTER);
   const [mapZoom, setMapZoom] = useState(13);
   const [locateTrigger, setLocateTrigger] = useState(0);
+
+  // Auto-focus location if passed in navigation state
+  useEffect(() => {
+    if (location.state?.lat && location.state?.lng) {
+      setMapCenter([location.state.lat, location.state.lng]);
+      setMapZoom(16);
+      setLocateTrigger(Date.now());
+    }
+  }, [location.state]);
 
   // Queries with real-time sync
   const { data: complaints = [] } = useQuery({
@@ -225,48 +245,66 @@ export function MapDashboard() {
           })}
 
           {/* LAYER 3: DEMAND HOTSPOTS (Pulsing Circles & Heatmap Markers) */}
-          {(activeLayer === "HOTSPOTS" || activeLayer === "DEMANDS") && hotspots.map((h: DemandHotspot) => (
-            <React.Fragment key={`h-${h.id}`}>
-              {/* Exact 100m Geographic Catchment Area */}
-              <Circle
-                center={[h.centerLat, h.centerLng]}
-                radius={100}
-                pathOptions={{
-                  fillColor: h.dominantCategory === "DRAINAGE" ? "#3b82f6" : "#f97316",
-                  fillOpacity: 0.18,
-                  color: h.dominantCategory === "DRAINAGE" ? "#60a5fa" : "#fb923c",
-                  weight: 1.5,
-                  dashArray: "4, 4"
-                }}
-                eventHandlers={{
-                  click: () => handleSelectHotspot(h)
-                }}
-              />
-              <CircleMarker
-                center={[h.centerLat, h.centerLng]}
-                radius={16}
-                pathOptions={{
-                  fillColor: h.dominantCategory === "DRAINAGE" ? "#3b82f6" : "#f97316",
-                  fillOpacity: 0.35,
-                  color: h.dominantCategory === "DRAINAGE" ? "#60a5fa" : "#fb923c",
-                  weight: 2
-                }}
-                eventHandlers={{
-                  click: () => handleSelectHotspot(h)
-                }}
-              />
-              <Marker
-                position={[h.centerLat, h.centerLng]}
-                icon={createIcon(
-                  { bg: "bg-orange-500", border: "border-orange-400", text: "text-orange-400" },
-                  "local_fire_department"
-                )}
-                eventHandlers={{
-                  click: () => handleSelectHotspot(h)
-                }}
-              />
-            </React.Fragment>
-          ))}
+          {(activeLayer === "HOTSPOTS" || activeLayer === "DEMANDS") && hotspots.map((h: DemandHotspot) => {
+            const cat = (h.dominantCategory || "").toUpperCase();
+            const isDrainage = cat === "DRAINAGE";
+            const isEnv = cat.includes("ENV") || cat.includes("TREE") || cat.includes("PARK");
+            const isWater = cat.includes("WATER");
+            const isSanitation = cat.includes("SANIT");
+            
+            const circleColor = isDrainage ? "#3b82f6" : isEnv ? "#10b981" : isWater ? "#06b6d4" : isSanitation ? "#a855f7" : "#f97316";
+            const strokeColor = isDrainage ? "#60a5fa" : isEnv ? "#34d399" : isWater ? "#22d3ee" : isSanitation ? "#c084fc" : "#fb923c";
+            const iconName = isEnv ? "park" : isWater ? "water_drop" : isSanitation ? "delete" : "local_fire_department";
+            const iconBg = isEnv 
+              ? { bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-400" } 
+              : isWater
+              ? { bg: "bg-cyan-500", border: "border-cyan-400", text: "text-cyan-400" }
+              : isSanitation
+              ? { bg: "bg-purple-500", border: "border-purple-400", text: "text-purple-400" }
+              : isDrainage
+              ? { bg: "bg-blue-500", border: "border-blue-400", text: "text-blue-400" }
+              : { bg: "bg-orange-500", border: "border-orange-400", text: "text-orange-400" };
+
+            return (
+              <React.Fragment key={`h-${h.id}`}>
+                {/* Exact 100m Geographic Catchment Area */}
+                <Circle
+                  center={[h.centerLat, h.centerLng]}
+                  radius={100}
+                  pathOptions={{
+                    fillColor: circleColor,
+                    fillOpacity: 0.22,
+                    color: strokeColor,
+                    weight: 1.5,
+                    dashArray: "4, 4"
+                  }}
+                  eventHandlers={{
+                    click: () => handleSelectHotspot(h)
+                  }}
+                />
+                <CircleMarker
+                  center={[h.centerLat, h.centerLng]}
+                  radius={16}
+                  pathOptions={{
+                    fillColor: circleColor,
+                    fillOpacity: 0.38,
+                    color: strokeColor,
+                    weight: 2
+                  }}
+                  eventHandlers={{
+                    click: () => handleSelectHotspot(h)
+                  }}
+                />
+                <Marker
+                  position={[h.centerLat, h.centerLng]}
+                  icon={createIcon(iconBg, iconName)}
+                  eventHandlers={{
+                    click: () => handleSelectHotspot(h)
+                  }}
+                />
+              </React.Fragment>
+            );
+          })}
 
           {/* LAYER 4 & 5: PROPOSALS & PORTFOLIO */}
           {(activeLayer === "PROPOSALS" || activeLayer === "PORTFOLIO") && proposals.map((p: DevelopmentProposal) => {
@@ -378,12 +416,22 @@ export function MapDashboard() {
                     <span>Confidence: <strong className="text-foreground">{(selectedEntity.data.confidence * 100).toFixed(0)}%</strong></span>
                   </div>
 
-                  <Button 
-                    onClick={() => navigate("/admin/planning")} 
-                    className="w-full text-xs bg-primary text-on-primary font-bold shadow-md"
-                  >
-                    View Matching Proposal & Evidence
-                  </Button>
+                  {selectedEntity.data.complaintId ? (
+                    <Button 
+                      onClick={() => navigate(`/track/${selectedEntity.data.complaintId}`)} 
+                      className="w-full text-xs bg-primary text-on-primary font-bold shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-sm">timeline</span>
+                      Track Incident Timeline
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => navigate("/admin/planning")} 
+                      className="w-full text-xs bg-primary text-on-primary font-bold shadow-md"
+                    >
+                      View Matching Proposal & Evidence
+                    </Button>
+                  )}
                 </div>
               )}
 

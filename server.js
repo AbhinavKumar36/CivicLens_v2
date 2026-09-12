@@ -643,6 +643,31 @@ function seedPlanningDataIfEmpty() {
     );
   });
 
+  // Seed individual incident hotspots for all active complaints that have coordinates
+  try {
+    const existingLocatedComplaints = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL').all();
+    for (const comp of existingLocatedComplaints) {
+      insertHotspot.run(
+        comp.department || 'Ward 23',
+        comp.latitude,
+        comp.longitude,
+        100,
+        1,
+        1,
+        comp.category ? comp.category.toUpperCase() : 'INCIDENT',
+        0.85 + (comp.id * 0.001),
+        'EMERGING',
+        'HIGH',
+        0.95,
+        'ACTIVE',
+        comp.created_at || new Date().toISOString(),
+        comp.created_at || new Date().toISOString()
+      );
+    }
+  } catch (e) {
+    console.error('Error seeding complaint hotspots on start:', e);
+  }
+
   // 3. Seed 8 Canonical Bhubaneswar Development Proposals & Evaluate against actual DB queries
   const proposals = [
     {
@@ -1218,9 +1243,26 @@ app.get('/api/complaints', (req, res) => {
 
 app.get('/api/complaints/:id', (req, res) => {
   try {
-    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(req.params.id);
+    const complaint = db.prepare(`
+      SELECT c.*,
+        w.name as worker_name, w.status as worker_status,
+        d.name as dept_name
+      FROM complaints c
+      LEFT JOIN workers w ON c.worker_id = w.id
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE c.id = ?
+    `).get(req.params.id);
     if (complaint) {
-      res.json(complaint);
+      // Enrich with nested worker object for frontend
+      const result = {
+        ...complaint,
+        assigned_worker: complaint.worker_name ? {
+          name: complaint.worker_name,
+          status: complaint.worker_status,
+          department: complaint.dept_name
+        } : null
+      };
+      res.json(result);
     } else {
       res.status(404).json({ error: 'Complaint not found' });
     }
@@ -1320,25 +1362,28 @@ app.post('/api/complaints', (req, res) => {
             t.representativeStatement, t.firstObservedAt, t.lastObservedAt
           );
         }
+        // Always re-insert all complaints with coordinates as persistent point hotspots
+        const allLocatedComplaints = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL').all();
+        for (const comp of allLocatedComplaints) {
+          insertHotspot.run(
+            comp.department || 'Ward 23',
+            comp.latitude,
+            comp.longitude,
+            100,
+            1,
+            1,
+            comp.category ? comp.category.toUpperCase() : 'INCIDENT',
+            0.85 + (comp.id * 0.001),
+            'EMERGING',
+            'HIGH',
+            0.95,
+            'ACTIVE',
+            comp.created_at || new Date().toISOString(),
+            comp.created_at || new Date().toISOString()
+          );
+        }
       });
       updateHotspotsTx();
-
-      // If the complaint has specific coordinates, also insert a direct point-level hotspot
-      // so it's immediately visible on the map regardless of ward clustering
-      if (latitude && longitude) {
-        const pointWardId = normalized.wardId || 'Ward Unknown';
-        const existingPointHotspot = db.prepare(
-          "SELECT id FROM demand_hotspots WHERE ABS(center_lat - ?) < 0.0005 AND ABS(center_lng - ?) < 0.0005 LIMIT 1"
-        ).get(latitude, longitude);
-        if (!existingPointHotspot) {
-          db.prepare(`
-            INSERT INTO demand_hotspots (
-              ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
-              dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
-            ) VALUES (?, ?, ?, 100, 1, 1, ?, 0.5, 'EMERGING', 'LOW', 0.75, 'ACTIVE', ?, ?)
-          `).run(pointWardId, latitude, longitude, category, new Date().toISOString(), new Date().toISOString());
-        }
-      }
 
       const activeHotspots = db.prepare("SELECT * FROM demand_hotspots WHERE status = 'ACTIVE'").all();
       matchedHotspot = activeHotspots.find(h => h.ward_id === normalized.wardId) || activeHotspots[0] || null;
@@ -1870,9 +1915,63 @@ app.get('/api/planning/themes', (req, res) => {
 // 3. Hotspots
 app.get('/api/planning/hotspots', (req, res) => {
   try {
-    const demands = db.prepare('SELECT * FROM normalized_demands').all();
-    const dynamicHotspots = ThemeHotspotEngine.computeHotspots(demands);
-    res.json(dynamicHotspots);
+    const rawHotspots = db.prepare("SELECT * FROM demand_hotspots WHERE status = 'ACTIVE' ORDER BY id DESC").all();
+    let mapped = [];
+    if (rawHotspots && rawHotspots.length > 0) {
+      mapped = rawHotspots.map(h => ({
+        id: h.id,
+        wardId: h.ward_id,
+        centerLat: h.center_lat,
+        centerLng: h.center_lng,
+        radius: h.radius || 100,
+        demandCount: h.demand_count,
+        uniqueCitizenCount: h.unique_citizen_count,
+        dominantCategory: h.dominant_category,
+        intensity: h.intensity,
+        recurrence: h.recurrence,
+        geographicConcentration: h.geographic_concentration,
+        confidence: h.confidence,
+        status: h.status,
+        firstObservedAt: h.first_observed_at,
+        lastObservedAt: h.last_observed_at
+      }));
+    } else {
+      const demands = db.prepare('SELECT * FROM normalized_demands').all();
+      mapped = ThemeHotspotEngine.computeHotspots(demands);
+    }
+
+    // Always ensure all reported complaints with coordinates are marked as hotspots
+    try {
+      const complaintsWithCoords = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY id DESC').all();
+      for (const comp of complaintsWithCoords) {
+        const exists = mapped.some(h => h.complaintId === comp.id);
+        if (!exists) {
+          mapped.unshift({
+            id: 10000 + comp.id,
+            wardId: comp.department ? `${comp.department} Division` : 'Ward 23',
+            centerLat: comp.latitude,
+            centerLng: comp.longitude,
+            radius: 100,
+            demandCount: 1,
+            uniqueCitizenCount: 1,
+            dominantCategory: comp.category ? comp.category.toUpperCase() : 'INCIDENT',
+            intensity: 0.95,
+            recurrence: 'EMERGING',
+            geographicConcentration: 'HIGH',
+            confidence: 0.98,
+            status: 'ACTIVE',
+            firstObservedAt: comp.created_at || new Date().toISOString(),
+            lastObservedAt: comp.created_at || new Date().toISOString(),
+            title: comp.summary,
+            complaintId: comp.id
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error attaching complaint hotspots:', e);
+    }
+
+    res.json(mapped);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch hotspots' });
