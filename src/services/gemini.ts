@@ -263,32 +263,54 @@ class FallbackChatSession {
 
   private async *_getStream(messageText: string): AsyncGenerator<any, void, unknown> {
     if (this.currentMode === "3.5" && this.session35) {
+      let yieldedAny = false;
       try {
         console.log("Attempting Gemini 3.5 Flash (Stream)...");
         const result = await this.session35.sendMessageStream(messageText);
         for await (const chunk of result.stream) {
-          yield chunk;
+          let text = "";
+          try {
+            text = chunk.text();
+          } catch (e) {
+            text = chunk.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+          if (text) {
+            yieldedAny = true;
+            yield { text: () => text };
+          }
         }
         this.syncHistory();
         return;
       } catch (error) {
         console.warn("Gemini 3.5 Flash Stream failed, falling back to 2.5 Flash...", error);
         this.currentMode = "2.5";
+        if (yieldedAny) return;
       }
     }
 
-    if (this.currentMode === "2.5" && this.session25) {
+    if ((this.currentMode === "2.5" || this.currentMode === "3.5") && this.session25) {
+      let yieldedAny = false;
       try {
         console.log("Attempting Gemini 2.5 Flash (Stream)...");
         const result = await this.session25.sendMessageStream(messageText);
         for await (const chunk of result.stream) {
-          yield chunk;
+          let text = "";
+          try {
+            text = chunk.text();
+          } catch (e) {
+            text = chunk.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+          if (text) {
+            yieldedAny = true;
+            yield { text: () => text };
+          }
         }
         this.syncHistory();
         return;
       } catch (error) {
         console.warn("Gemini 2.5 Flash Stream failed, falling back to Offline Mock...", error);
         this.currentMode = "mock";
+        if (yieldedAny) return;
       }
     }
 

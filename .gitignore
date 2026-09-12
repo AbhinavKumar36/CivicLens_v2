@@ -31,3 +31,8 @@ dist-ssr
 CivicLens_v2.zip
 chat.txt
 scratch/
+
+# Build artifacts in root
+/assets
+404.html
+

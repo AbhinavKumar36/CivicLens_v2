@@ -104,8 +104,15 @@ export function ReportIssue() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       
       const data = await response.json()
-      const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text
-      const parsed: ReportData = JSON.parse(resultText)
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || ""
+      let cleaned = rawText.trim()
+      if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")
+      } else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "")
+      }
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+      const parsed: ReportData = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
       
       setReportData({ ...parsed, image: imagePreview })
       addNotification({
