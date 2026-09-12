@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/CivicLens_v2/icon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>CivicLens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('civiclens-theme');
+          if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/CivicLens_v2/assets/index-CRmW4ROx.js"></script>
+    <link rel="modulepreload" crossorigin href="/CivicLens_v2/assets/jsx-runtime-D8nDyRPw.js">
+    <link rel="modulepreload" crossorigin href="/CivicLens_v2/assets/axios-DzNBUnJq.js">
+    <link rel="stylesheet" crossorigin href="/CivicLens_v2/assets/index-C2TXM1AJ.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
