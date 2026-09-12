@@ -93,6 +93,7 @@ export default function App() {
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
                   <Route path="/reports/:id" element={<ProtectedRoute><IssueTrackingTimeline /></ProtectedRoute>} />
+                  <Route path="/track/:id" element={<ProtectedRoute><IssueTrackingTimeline /></ProtectedRoute>} />
 
                 </Route>
               </Routes>

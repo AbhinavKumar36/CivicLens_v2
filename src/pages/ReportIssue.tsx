@@ -311,14 +311,35 @@ export function ReportIssue() {
                        <Headline level={4} className="text-on-surface line-clamp-2 leading-snug text-base">{report.summary}</Headline>
                        <StatusChip status={report.status} variant={report.status === 'Resolved' ? 'success' : report.status === 'Pending' ? 'warning' : 'primary'} />
                      </div>
-                     <div className="mt-auto flex justify-between items-end">
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-on-surface-variant">Category</Label>
-                          <BodyText className="text-sm font-medium">{report.category}</BodyText>
+                      <div className="mt-auto pt-3 border-t border-foreground/5 flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex flex-col gap-0.5">
+                            <Label className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">Category</Label>
+                            <BodyText className="text-sm font-semibold capitalize text-foreground">{report.category}</BodyText>
+                          </div>
+                          <span className="material-symbols-outlined text-primary/70 group-hover:text-primary transition-colors">arrow_forward</span>
                         </div>
-                        <span className="material-symbols-outlined text-on-surface-variant">arrow_forward</span>
-                     </div>
-                   </GlassPanel>
+                        {report.latitude && report.longitude && (
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <div className="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
+                              <span className="material-symbols-outlined text-xs text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+                              <span>{Number(report.latitude).toFixed(4)}°N, {Number(report.longitude).toFixed(4)}°E</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/map', { state: { lat: report.latitude, lng: report.longitude, id: report.id } });
+                              }}
+                              className="text-[11px] font-bold text-primary hover:text-on-primary hover:bg-primary px-2.5 py-1 rounded-lg border border-primary/30 transition-all flex items-center gap-1 bg-primary/10"
+                            >
+                              <span className="material-symbols-outlined text-xs">map</span>
+                              View on Map
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </GlassPanel>
                  ))}
                </div>
              ) : (

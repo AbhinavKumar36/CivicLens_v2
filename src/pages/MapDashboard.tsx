@@ -160,6 +160,16 @@ export function MapDashboard() {
     return new Set((portfolioResult?.selectedProposals || []).map(p => p.id));
   }, [portfolioResult]);
 
+  // Auto-select hotspot entity if navigated with complaint ID
+  useEffect(() => {
+    if (location.state?.id && hotspots.length > 0) {
+      const match = hotspots.find((h: any) => h.complaintId === location.state.id || h.id === 10000 + location.state.id);
+      if (match) {
+        setSelectedEntity({ type: "HOTSPOT", data: match });
+      }
+    }
+  }, [location.state, hotspots]);
+
   const handleSelectHotspot = (hotspot: DemandHotspot) => {
     setSelectedEntity({ type: "HOTSPOT", data: hotspot });
     setMapCenter([hotspot.centerLat, hotspot.centerLng]);
