@@ -189,8 +189,8 @@ export function Login() {
         className="max-w-4xl w-full z-10 space-y-10"
       >
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl overflow-hidden mx-auto shadow-[0_0_30px_rgba(192,193,255,0.2)]">
-            <img src={`${import.meta.env.BASE_URL}logo.jpeg`} alt="CivicLens Logo" className="w-full h-full object-cover" />
+          <div className="w-16 h-16 rounded-3xl overflow-hidden mx-auto shadow-[0_0_30px_rgba(192,193,255,0.2)] bg-white flex items-center justify-center p-1">
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-full h-full object-contain" />
           </div>
           <Headline level={1} className="text-foreground">Select Your Profile</Headline>
           <BodyText className="text-on-surface-variant max-w-lg mx-auto">

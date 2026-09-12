@@ -44,7 +44,7 @@ export function Sidebar() {
   return (
     <aside className="h-screen w-sidebar-width fixed left-0 top-0 bg-surface/60 backdrop-blur-xl border-r border-foreground/10 shadow-md flex flex-col py-base z-50 hidden md:flex overflow-y-auto select-none">
       <div className="px-6 mb-12 flex items-center gap-3" role="banner">
-        <img src={`${import.meta.env.BASE_URL}logo.jpeg`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-cover" />
+        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-contain bg-white p-0.5" />
         <div className="flex flex-col gap-0.5">
           <span className="font-headline-md text-lg font-bold text-on-surface leading-none">CivicLens</span>
           <span className="font-label-sm text-[9px] text-primary tracking-widest uppercase leading-none">Smart City AI</span>

@@ -54,7 +54,7 @@ export function LandingPage() {
         {/* Header */}
         <header className="w-full h-20 px-8 flex justify-between items-center border-b border-[#dae2fd]/5 relative z-10 shrink-0 bg-[#0b1326]/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <img src={`${import.meta.env.BASE_URL}logo.jpeg`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-cover" style={{ boxShadow: '0px 0px 40px rgba(192,193,255,0.4)' }} />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-contain bg-white p-0.5" style={{ boxShadow: '0px 0px 40px rgba(192,193,255,0.4)' }} />
             <div>
               <h1 className="font-headline-md text-lg font-extrabold tracking-tight bg-gradient-to-r from-[#c0c1ff] to-[#ddb7ff] bg-clip-text text-transparent">CivicLens AI</h1>
               <p className="text-[9px] text-[#908fa0] font-label-sm uppercase tracking-wider">City Operating System</p>
