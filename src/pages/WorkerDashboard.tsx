@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from "react"
+import React, { useRef, useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
@@ -7,6 +7,17 @@ import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { cn } from "@/utils/utils"
 import { useAuth } from "@/contexts/AuthContext"
+import { MapContainer, TileLayer, Marker, Polyline } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
+import L from "leaflet"
+
+// Fix leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -152,6 +163,18 @@ export function WorkerDashboard() {
   const { user } = useAuth()
   const [uploadingJobId, setUploadingJobId] = useState(null)
   const [successJobId, setSuccessJobId] = useState(null)
+  const [sosAlert, setSosAlert] = useState(null)
+
+  useEffect(() => {
+    const sse = new EventSource('http://localhost:3000/api/emergency/stream')
+    sse.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        setSosAlert(data)
+      } catch (err) {}
+    }
+    return () => sse.close()
+  }, [])
 
   const handleStatusChange = async (jobId, newStatus) => {
     try {
@@ -190,6 +213,37 @@ export function WorkerDashboard() {
           }}
         />
       )}
+
+      {/* SOS Alert Modal */}
+      <AnimatePresence>
+        {sosAlert && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-error/20 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-surface border-2 border-error rounded-3xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(255,0,0,0.3)] text-center relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-error/10 animate-pulse pointer-events-none" />
+              <span className="material-symbols-outlined text-6xl text-error mb-4">emergency</span>
+              <Headline level={2} className="text-error font-bold mb-2">SOS ALERT RECEIVED</Headline>
+              <BodyText className="text-on-surface text-lg mb-1">{sosAlert.type}</BodyText>
+              <BodyText className="text-on-surface-variant mb-6">Location: {sosAlert.location}</BodyText>
+              
+              <button 
+                onClick={() => setSosAlert(null)}
+                className="w-full py-4 bg-error text-on-error font-bold rounded-xl text-lg hover:bg-error/90 transition-colors shadow-lg active:scale-95"
+              >
+                Acknowledge & Route
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="md:hidden flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -261,11 +315,36 @@ export function WorkerDashboard() {
           </motion.section>
 
           <GlassPanel className="flex-1 rounded-3xl overflow-hidden relative border border-foreground/10 min-h-[200px]">
-            <div className="absolute inset-0 bg-surface-variant/30 flex flex-col items-center justify-center text-on-surface-variant/50 z-10">
-              <span className="material-symbols-outlined text-4xl mb-2">map</span>
-              <span className="text-sm font-bold uppercase tracking-widest">Live Routing</span>
+            {workerJobs.length > 0 ? (
+              <MapContainer 
+                center={[workerJobs[0].latitude || 20.296, workerJobs[0].longitude || 85.824]} 
+                zoom={13} 
+                style={{ height: '100%', width: '100%', zIndex: 1 }}
+                zoomControl={false}
+              >
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                {workerJobs.filter(j => j.latitude && j.longitude).map(job => (
+                  <Marker key={job.id} position={[job.latitude, job.longitude]} />
+                ))}
+                <Polyline 
+                  positions={workerJobs.filter(j => j.latitude && j.longitude).map(j => [j.latitude, j.longitude])}
+                  pathOptions={{ color: '#ffb0cd', weight: 4, dashArray: '10, 10' }}
+                />
+              </MapContainer>
+            ) : (
+              <div className="absolute inset-0 bg-surface-variant/30 flex flex-col items-center justify-center text-on-surface-variant/50 z-10">
+                <span className="material-symbols-outlined text-4xl mb-2">map</span>
+                <span className="text-sm font-bold uppercase tracking-widest">Live Routing</span>
+              </div>
+            )}
+            <div className="absolute top-4 left-4 z-10 bg-surface-container/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-foreground/10 shadow-lg">
+              <span className="text-xs font-bold text-primary flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">route</span> TSP Optimized
+              </span>
             </div>
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, var(--up-primary-container) 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
           </GlassPanel>
 
           <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-2 gap-4 flex-shrink-0">

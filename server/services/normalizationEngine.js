@@ -95,7 +95,7 @@ export class NormalizationEngine {
         ? rawText
         : `Damaged road surfaces and potholes posing pedestrian and vehicle hazards in ${detectedWard}.`;
       demandStatement = `Pothole remediation and accessible pedestrian walkways in ${detectedWard}.`;
-      severity = lower.includes('accident') || lower.includes('severe') ? 'CRITICAL' : 'HIGH';
+      severity = lower.includes('severe') ? 'CRITICAL' : 'HIGH';
       urgency = lower.includes('urgent') || lower.includes('immediate') ? 'HIGH' : 'MEDIUM';
       confidence = 0.91;
       affectedGroups = ['Two-Wheeler Riders', 'Pedestrians', 'School Commuters'];
@@ -153,6 +153,20 @@ export class NormalizationEngine {
       urgency = 'HIGH';
       confidence = 0.89;
       affectedGroups = ['Neighborhood Residents', 'Sanitation Staff', 'School Children'];
+    }
+
+    // Global Emergency Keyword Detection
+    if (
+      lower.includes('fire') || lower.includes('accident') || lower.includes('emergency') || 
+      lower.includes('help') || lower.includes('sos') || lower.includes('आग') || 
+      lower.includes('दुर्घटना') || lower.includes('ନିଆଁ')
+    ) {
+      category = 'EMERGENCY';
+      subCategory = 'Urgent Dispatch Required';
+      title = `EMERGENCY ALERT — ${detectedWard}`;
+      severity = 'EMERGENCY_SOS';
+      urgency = 'IMMEDIATE';
+      confidence = 1.0;
     }
 
     return {

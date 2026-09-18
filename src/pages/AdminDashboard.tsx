@@ -11,6 +11,18 @@ import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { cn } from "@/utils/utils"
 
+// --- SOS Logic ---
+const handleSOSDispatch = async (type: string, severity: string) => {
+  if (confirm(`Are you sure you want to dispatch an SOS alert for ${type}?`)) {
+    try {
+      await api.client.post('/api/emergency/sos', { type, location: 'Citywide', severity });
+      alert('SOS Alert Dispatched to all field workers successfully.');
+    } catch (e) {
+      alert('Failed to dispatch SOS alert.');
+    }
+  }
+}
+
 // --- Custom Recharts Tooltip ---
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -157,10 +169,43 @@ export function AdminDashboard() {
   return (
     <div className="max-w-[1600px] mx-auto w-full pt-4 pb-20 space-y-6">
       
-      <div className="mb-8">
+      <div className="mb-4">
         <Headline level={1} className="text-3xl text-primary font-bold">City Control Center</Headline>
         <BodyText className="text-on-surface-variant">Admin Mode • Live Operations Analytics</BodyText>
       </div>
+
+      {/* Emergency SOS Panel */}
+      <motion.section 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="mb-6"
+      >
+        <GlassPanel className="p-6 rounded-2xl border border-error/30 bg-error/5 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+            <div>
+              <Headline level={3} className="text-error font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-error">emergency</span>
+                Emergency SOS Dispatch
+              </Headline>
+              <BodyText className="text-on-surface-variant text-sm mt-1">
+                Instantly push a critical alert to the nearest Worker field teams.
+              </BodyText>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => handleSOSDispatch('Fire Emergency', 'CRITICAL')} className="px-5 py-2.5 bg-error text-on-error font-bold rounded-xl shadow-lg hover:bg-error/90 transition-all flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">local_fire_department</span> Fire
+              </button>
+              <button onClick={() => handleSOSDispatch('Severe Accident', 'CRITICAL')} className="px-5 py-2.5 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">car_crash</span> Accident
+              </button>
+              <button onClick={() => handleSOSDispatch('Medical Emergency', 'HIGH')} className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">medical_services</span> Medical
+              </button>
+            </div>
+          </div>
+        </GlassPanel>
+      </motion.section>
 
       {/* Top Stats Row */}
       <motion.section 

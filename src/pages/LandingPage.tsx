@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
+import { Canvas } from '@react-three/fiber'
+import { CityGlobe } from '../components/3d/CityGlobe'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,10 +48,16 @@ export function LandingPage() {
     // Force dark mode on landing page so the marketing page always looks premium
     <div className="dark">
       <main className="w-full min-h-screen bg-[#0b1326] text-[#dae2fd] flex flex-col relative overflow-y-auto">
-        {/* Glowing Abstract Background Orbs */}
-        <div className="absolute top-[10%] left-[5%] w-96 h-96 bg-[#c0c1ff]/10 blur-[120px] rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-[10%] right-[5%] w-96 h-96 bg-[#ddb7ff]/15 blur-[150px] rounded-full pointer-events-none"></div>
-        <div className="absolute top-[50%] left-[40%] w-64 h-64 bg-[#ffb0cd]/5 blur-[100px] rounded-full pointer-events-none"></div>
+        {/* 3D Background */}
+        <div className="absolute inset-0 z-0">
+          <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
+            <CityGlobe />
+          </Canvas>
+        </div>
+        
+        {/* Glowing Abstract Background Orbs (dimmed for 3D overlay) */}
+        <div className="absolute top-[10%] left-[5%] w-96 h-96 bg-[#c0c1ff]/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
+        <div className="absolute bottom-[10%] right-[5%] w-96 h-96 bg-[#ddb7ff]/5 blur-[150px] rounded-full pointer-events-none z-0"></div>
 
         {/* Header */}
         <header className="w-full h-20 px-8 flex justify-between items-center border-b border-[#dae2fd]/5 relative z-10 shrink-0 bg-[#0b1326]/50 backdrop-blur-md">

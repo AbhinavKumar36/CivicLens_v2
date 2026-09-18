@@ -9,6 +9,7 @@ import { ThemeHotspotEngine } from './server/services/themeHotspotEngine.js';
 import { EvidenceEngine } from './server/services/evidenceEngine.js';
 import { getAllWardDemographics, getWardDemographics, getNearbyAmenities, loadBhubaneswarData } from './server/services/bhubaneswarData.js';
 import { verifyAadhaarDocument, deriveAadhaarPassword, generateTestAadhaarPdf } from './server/services/aadhaarVerifier.js';
+import { TranscriptionService } from './server/services/transcriptionService.js';
 
 const app = express();
 const port = 3000;
@@ -1526,6 +1527,52 @@ app.post('/api/emergencies', (req, res) => {
   }
 });
 
+// SSE Clients for Emergency Alerts
+let sseClients = [];
+
+app.get('/api/emergency/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  sseClients.push({ id: clientId, res });
+
+  req.on('close', () => {
+    sseClients = sseClients.filter(client => client.id !== clientId);
+  });
+});
+
+app.post('/api/emergency/sos', (req, res) => {
+  try {
+    const { type, location, severity, targetWorkerId } = req.body;
+    
+    // Create emergency record
+    const insert = db.prepare('INSERT INTO emergencies (type, location, status, severity, reported_at) VALUES (?, ?, ?, ?, ?)');
+    const result = insert.run(type, location, 'Active', severity || 'EMERGENCY', new Date().toISOString());
+    const emergencyId = result.lastInsertRowid;
+
+    // Push alert via SSE
+    const alertData = JSON.stringify({
+      id: emergencyId,
+      type,
+      location,
+      severity,
+      targetWorkerId,
+      timestamp: new Date().toISOString()
+    });
+
+    sseClients.forEach(client => {
+      client.res.write(`data: ${alertData}\n\n`);
+    });
+
+    res.status(200).json({ success: true, message: 'SOS Alert dispatched.' });
+  } catch (err) {
+    res.status(500).json({ error: 'SOS Dispatch Error: ' + err.message });
+  }
+});
+
 // -------------------------------------------------------------
 // CORE SERVICES, REWARDS, NOTIFICATIONS & CITIZEN ROUTES
 // -------------------------------------------------------------
@@ -1898,14 +1945,33 @@ app.get('/api/planning/demands', (req, res) => {
   }
 });
 
-app.post('/api/planning/demands/normalize', (req, res) => {
+app.post('/api/planning/demands/normalize', async (req, res) => {
   try {
-    const { text, ward, lat, lng, citizenId, language } = req.body;
+    let { text, audioBase64, ward, lat, lng, citizenId, language } = req.body;
+    
+    if (audioBase64) {
+      text = await TranscriptionService.transcribeAudio(audioBase64);
+    }
+    
     if (!text) {
-      return res.status(400).json({ error: 'Text prompt is required for normalization' });
+      return res.status(400).json({ error: 'Text prompt or audioBase64 is required for normalization' });
     }
 
     const normalized = NormalizationEngine.normalize({ text, ward, lat, lng, citizenId, language });
+
+    // Auto-dispatch SOS if keyword detected
+    if (normalized.severity === 'EMERGENCY_SOS') {
+      const alertData = JSON.stringify({
+        id: Date.now(),
+        type: normalized.title,
+        location: normalized.wardId,
+        severity: 'EMERGENCY_SOS',
+        timestamp: new Date().toISOString()
+      });
+      sseClients.forEach(client => {
+        client.res.write(`data: ${alertData}\n\n`);
+      });
+    }
 
     const insert = db.prepare(`
       INSERT INTO normalized_demands (
