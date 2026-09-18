@@ -20,7 +20,6 @@ export type MapLayerType =
   | "ISSUES" 
   | "DEMANDS" 
   | "HOTSPOTS" 
-  | "INFRASTRUCTURE" 
   | "PROPOSALS" 
   | "PORTFOLIO";
 
@@ -36,11 +35,11 @@ export interface MapIncident {
 }
 
 const MAP_LAYERS = [
-  { id: "ISSUES", label: "Civic Issues", icon: "warning", desc: "Live citizen-reported problems (e.g. potholes, broken pipes)" },
-  { id: "DEMANDS", label: "Public Demands", icon: "dataset", desc: "Citizen requests for new infrastructure (e.g. parks, clinics)" },
-  { id: "HOTSPOTS", label: "Demand Hotspots", icon: "local_fire_department", desc: "AI-clustered areas showing high concentrations of public demands" },
-  { id: "PROPOSALS", label: "Proposals", icon: "assignment", desc: "Constituency development projects" },
-  { id: "PORTFOLIO", label: "Portfolio", icon: "account_balance_wallet", desc: "Feasible funded allocation (₹5 Cr)" }
+  { id: "ISSUES",   label: "Civic Issues",    icon: "warning",                 desc: "Individual citizen-reported incidents (potholes, broken pipes, etc.)" },
+  { id: "DEMANDS",  label: "Public Demands",   icon: "dataset",                 desc: "Normalized development needs extracted from citizen voices" },
+  { id: "HOTSPOTS", label: "Demand Hotspots",  icon: "local_fire_department",   desc: "Geographic clusters of recurring public demands (≥3 demands, ≥2 citizens, 100m radius)" },
+  { id: "PROPOSALS",label: "Proposals",        icon: "assignment",              desc: "Constituency development projects evaluated by the Priority Engine" },
+  { id: "PORTFOLIO",label: "Portfolio",         icon: "account_balance_wallet", desc: "Feasible funded allocation (₹5 Cr budget)" }
 ];
 
 // Custom Leaflet Icons
@@ -79,36 +78,7 @@ const createProposalIcon = (category: string, score: number, isFunded = true) =>
   });
 };
 
-const createIncidentHotspotIcon = (category: string, complaintId?: number, isSelected = false) => {
-  const cat = (category || "").toLowerCase();
-  const isEnv = cat.includes("env") || cat.includes("tree") || cat.includes("park");
-  const icon = isEnv ? "park" : cat.includes("drain") ? "waves" : cat.includes("road") ? "construction" : "report_problem";
-  const bg = isEnv ? "bg-emerald-500" : "bg-primary";
-  const border = isEnv ? "border-emerald-400" : "border-primary";
-  const text = isEnv ? "text-emerald-400" : "text-primary";
 
-  return L.divIcon({
-    className: "custom-incident-marker",
-    html: `
-      <div class="relative flex flex-col items-center cursor-pointer group pointer-events-auto select-none" style="z-index: 1000;">
-        <!-- Glowing Floating Badge -->
-        <div class="mb-1 px-2 py-0.5 rounded-md bg-[#0b1329] border border-emerald-400/80 shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center gap-1 text-[10px] font-extrabold text-emerald-300 backdrop-blur-xl whitespace-nowrap ${isSelected ? 'scale-110' : ''} transition-transform">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>#UP-${complaintId || 'REPORT'}</span>
-        </div>
-        <!-- Pin Base with Ping Alert -->
-        <div class="relative">
-          <div class="absolute -inset-2 ${bg} rounded-full opacity-60 animate-ping"></div>
-          <div class="w-10 h-10 rounded-full bg-[#0b1329] border-2 ${border} flex items-center justify-center ${text} shadow-2xl">
-            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">${icon}</span>
-          </div>
-        </div>
-      </div>
-    `,
-    iconSize: [80, 70],
-    iconAnchor: [40, 55],
-  });
-};
 
 const getCategoryIcon = (category: string) => {
   const cat = category.toLowerCase();
@@ -193,10 +163,10 @@ export function MapDashboard() {
     return new Set((portfolioResult?.selectedProposals || []).map(p => p.id));
   }, [portfolioResult]);
 
-  // Auto-select hotspot entity if navigated with complaint ID
+  // Auto-select hotspot entity if navigated with hotspot ID
   useEffect(() => {
     if (location.state?.id && hotspots.length > 0) {
-      const match = hotspots.find((h: any) => h.complaintId === location.state.id || h.id === 10000 + location.state.id);
+      const match = hotspots.find((h: any) => h.id === location.state.id);
       if (match) {
         setSelectedEntity({ type: "HOTSPOT", data: match });
       }
@@ -343,8 +313,6 @@ export function MapDashboard() {
             const isEnv = cat.includes("ENV") || cat.includes("TREE") || cat.includes("PARK");
             const isWater = cat.includes("WATER");
             const isSanitation = cat.includes("SANIT");
-            const isComplaint = !!(h as any).complaintId;
-            const isSelected = selectedEntity?.data?.id === h.id || selectedEntity?.data?.complaintId === (h as any).complaintId;
             
             const circleColor = isDrainage ? "#3b82f6" : isEnv ? "#10b981" : isWater ? "#06b6d4" : isSanitation ? "#a855f7" : "#f97316";
             const strokeColor = isDrainage ? "#60a5fa" : isEnv ? "#34d399" : isWater ? "#22d3ee" : isSanitation ? "#c084fc" : "#fb923c";
@@ -361,16 +329,16 @@ export function MapDashboard() {
 
             return (
               <React.Fragment key={`h-${h.id}`}>
-                {/* Geographic Catchment Area */}
+                {/* Demand Cluster Catchment Area */}
                 <Circle
                   center={[h.centerLat, h.centerLng]}
-                  radius={isComplaint ? 150 : 100}
+                  radius={100}
                   pathOptions={{
                     fillColor: circleColor,
-                    fillOpacity: isComplaint ? 0.35 : 0.22,
+                    fillOpacity: 0.22,
                     color: strokeColor,
-                    weight: isComplaint ? 2.5 : 1.5,
-                    dashArray: isComplaint ? undefined : "4, 4"
+                    weight: 1.5,
+                    dashArray: "4, 4"
                   }}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
@@ -378,12 +346,12 @@ export function MapDashboard() {
                 />
                 <CircleMarker
                   center={[h.centerLat, h.centerLng]}
-                  radius={isComplaint ? 22 : 16}
+                  radius={16}
                   pathOptions={{
                     fillColor: circleColor,
-                    fillOpacity: isComplaint ? 0.5 : 0.38,
+                    fillOpacity: 0.38,
                     color: strokeColor,
-                    weight: isComplaint ? 2.5 : 2
+                    weight: 2
                   }}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
@@ -391,25 +359,20 @@ export function MapDashboard() {
                 />
                 <Marker
                   position={[h.centerLat, h.centerLng]}
-                  icon={isComplaint ? createIncidentHotspotIcon(h.dominantCategory, (h as any).complaintId, isSelected) : createIcon(iconBg, iconName)}
-                  zIndexOffset={isComplaint ? 1000 : 100}
+                  icon={createIcon(iconBg, iconName)}
+                  zIndexOffset={100}
                   eventHandlers={{
                     click: () => handleSelectHotspot(h)
                   }}
                 >
-                  <Tooltip
-                    direction="top"
-                    offset={[0, isComplaint ? -45 : -22]}
-                    opacity={1}
-                  >
+                  <Tooltip direction="top" offset={[0, -22]} opacity={1}>
                     <div className="font-sans px-2.5 py-1 bg-[#0b1329] border border-foreground/20 rounded-xl text-foreground text-xs shadow-2xl flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5">
-                        {isComplaint && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>}
-                        <span className="font-bold text-primary">{isComplaint ? `#UP-${(h as any).complaintId}` : h.wardId}</span>
-                        {!isComplaint && <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{h.dominantCategory}</span>}
+                        <span className="font-bold text-primary">{h.wardId}</span>
+                        <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{h.dominantCategory}</span>
                       </div>
                       <span className="text-[11px] text-on-surface-variant font-medium max-w-[210px] truncate">
-                        {(h as any).title || `${h.dominantCategory} Cluster • ${h.demandCount} Demands`}
+                        {`${h.dominantCategory} Cluster • ${h.demandCount} Demands`}
                       </span>
                     </div>
                   </Tooltip>
@@ -528,22 +491,12 @@ export function MapDashboard() {
                     <span>Confidence: <strong className="text-foreground">{(selectedEntity.data.confidence * 100).toFixed(0)}%</strong></span>
                   </div>
 
-                  {selectedEntity.data.complaintId ? (
-                    <Button 
-                      onClick={() => navigate(`/track/${selectedEntity.data.complaintId}`)} 
-                      className="w-full text-xs bg-primary text-on-primary font-bold shadow-md flex items-center justify-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">timeline</span>
-                      Track Incident Timeline
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={() => navigate("/admin/planning")} 
-                      className="w-full text-xs bg-primary text-on-primary font-bold shadow-md"
-                    >
-                      View Matching Proposal & Evidence
-                    </Button>
-                  )}
+                  <Button 
+                    onClick={() => navigate("/admin/planning")} 
+                    className="w-full text-xs bg-primary text-on-primary font-bold shadow-md"
+                  >
+                    View Matching Proposal &amp; Evidence
+                  </Button>
                 </div>
               )}
 
@@ -614,16 +567,25 @@ export function MapDashboard() {
       {/* Quick Location Fly-to Controls */}
       <div className="absolute bottom-8 right-4 md:right-8 z-30 flex flex-col items-end gap-3 pointer-events-none">
         <button 
+          onClick={handleLocateMe}
+          className="pointer-events-auto px-4 py-2.5 rounded-full bg-surface-container-highest border border-foreground/15 text-xs font-bold text-foreground hover:bg-foreground/10 transition-all shadow-xl flex items-center gap-2"
+          title="Use your device's GPS to jump to your current location"
+        >
+          <span className="material-symbols-outlined text-primary text-base">my_location</span>
+          Locate Me
+        </button>
+
+        <button 
           onClick={() => {
             setMapCenter(BHUBANESWAR_CENTER);
             setMapZoom(13);
             setLocateTrigger(Date.now());
           }}
-          className="pointer-events-auto px-4 py-2.5 rounded-full bg-surface-container-highest border border-foreground/15 text-xs font-bold text-foreground hover:bg-foreground/10 transition-all shadow-xl flex items-center gap-2"
-          title="Jump to Bhubaneswar Constituency"
+          className="pointer-events-auto px-4 py-2.5 rounded-full bg-surface-container-highest border border-foreground/15 text-xs font-bold text-on-surface-variant hover:bg-foreground/10 transition-all shadow-xl flex items-center gap-2"
+          title="Jump to Bhubaneswar constituency center"
         >
-          <span className="material-symbols-outlined text-primary text-base">near_me</span>
-          Locate Me
+          <span className="material-symbols-outlined text-on-surface-variant text-base">location_city</span>
+          Bhubaneswar Center
         </button>
 
         <button 

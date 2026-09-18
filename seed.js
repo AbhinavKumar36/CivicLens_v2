@@ -98,43 +98,6 @@ for (let i = 1; i <= 50; i++) {
   complaintIds.push(insertComplaint.run(cat, prio, prio, summary, stat, dept, estTime, worker_id, lat, lng, createdAt).lastInsertRowid);
 }
 
-// 5. Normalized Demands
-const insertDemand = db.prepare(`
-    INSERT INTO normalized_demands (civic_input_id, category, sub_category, title, summary, demand_statement, problem_statement, severity, urgency, language, ward_id, lat, lng, confidence, affected_groups, citizen_id, source, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const wards = ["Ward 23", "Ward 24", "Ward 35", "Ward 42", "Ward 12", "Ward 31"];
-for (let i = 0; i < complaintIds.length; i++) {
-    const lat = 20.296 + (getPseudoRandom(i * 30) - 0.5) * 0.05;
-    const lng = 85.824 + (getPseudoRandom(i * 31) - 0.5) * 0.05;
-    insertDemand.run(
-        complaintIds[i],
-        categories[Math.floor(getPseudoRandom(i * 32) * categories.length)].toUpperCase(),
-        "GENERAL",
-        "Community Need " + i,
-        "Auto-normalized civic demand from citizen report.",
-        "We need immediate attention to this issue.",
-        "The current situation is causing hardship.",
-        ["LOW", "MEDIUM", "HIGH", "CRITICAL"][Math.floor(getPseudoRandom(i * 33) * 4)],
-        ["LOW", "MEDIUM", "HIGH", "CRITICAL"][Math.floor(getPseudoRandom(i * 34) * 4)],
-        "ENGLISH",
-        wards[Math.floor(getPseudoRandom(i * 35) * wards.length)],
-        lat,
-        lng,
-        0.8 + getPseudoRandom(i * 36) * 0.2,
-        "Residents, Commuters",
-        "citizen-" + i,
-        "CITIZEN_REPORT",
-        new Date(Date.now() - getPseudoRandom(i * 37) * 864000000).toISOString()
-    );
-}
-
-// 6. Themes & Hotspots
-const insertTheme = db.prepare('INSERT INTO demand_themes (name, summary, category, sub_category, recurrence_status, demand_count, unique_citizen_count, coherence_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-const themeId = insertTheme.run("Water Logging & Drainage", "Severe water logging in commercial areas during monsoon", "INFRASTRUCTURE", "DRAINAGE", "CHRONIC", 24, 45, 0.92).lastInsertRowid;
-
-const insertHotspot = db.prepare('INSERT INTO demand_hotspots (ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count, dominant_category, intensity, recurrence, geographic_concentration, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-const hotspotId = insertHotspot.run("Ward 23", 20.296, 85.824, 0.5, 45, 120, "INFRASTRUCTURE", 0.85, "HIGH", "DENSE", 0.95, "ACTIVE").lastInsertRowid;
 
 
 console.log("Database seeded successfully with deterministic Bhubaneswar data.");

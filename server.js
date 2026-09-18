@@ -645,30 +645,7 @@ function seedPlanningDataIfEmpty() {
     );
   });
 
-  // Seed individual incident hotspots for all active complaints that have coordinates
-  try {
-    const existingLocatedComplaints = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL').all();
-    for (const comp of existingLocatedComplaints) {
-      insertHotspot.run(
-        comp.department || 'Ward 23',
-        comp.latitude,
-        comp.longitude,
-        100,
-        1,
-        1,
-        comp.category ? comp.category.toUpperCase() : 'INCIDENT',
-        0.85 + (comp.id * 0.001),
-        'EMERGING',
-        'HIGH',
-        0.95,
-        'ACTIVE',
-        comp.created_at || new Date().toISOString(),
-        comp.created_at || new Date().toISOString()
-      );
-    }
-  } catch (e) {
-    console.error('Error seeding complaint hotspots on start:', e);
-  }
+
 
   // 3. Seed 8 Canonical Bhubaneswar Development Proposals & Evaluate against actual DB queries
   const proposals = [
@@ -856,6 +833,33 @@ function seedPlanningDataIfEmpty() {
   });
 
   console.log(`✅ CivicLens Planning Seed Complete: 184 demands, 121 unique citizens, 8 proposals.`);
+}
+
+// Migration: Rebuild demand_hotspots from normalized_demands on every start.
+// This ensures no stale complaint-derived rows survive restarts.
+try {
+  const demandCount = db.prepare('SELECT count(*) as c FROM normalized_demands').get().c;
+  if (demandCount > 0) {
+    db.exec('DELETE FROM demand_hotspots');
+    const allDemands = db.prepare('SELECT * FROM normalized_demands').all();
+    const hotspots = ThemeHotspotEngine.computeHotspots(allDemands);
+    const insertHotspot = db.prepare(`
+      INSERT INTO demand_hotspots (
+        ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
+        dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    hotspots.forEach(h => {
+      insertHotspot.run(
+        h.wardId, h.centerLat, h.centerLng, h.radius, h.demandCount, h.uniqueCitizenCount,
+        h.dominantCategory, h.intensity, h.recurrence, h.geographicConcentration, h.confidence,
+        h.status, h.firstObservedAt, h.lastObservedAt
+      );
+    });
+    console.log(`✅ Demand hotspots rebuilt from spatial clustering: ${hotspots.length} clusters (min 3 demands, 2 citizens, 100m radius)`);
+  }
+} catch(e) {
+  console.error("Hotspot migration error:", e);
 }
 
 seedPlanningDataIfEmpty();
@@ -1397,26 +1401,7 @@ app.post('/api/complaints', (req, res) => {
             t.representativeStatement, t.firstObservedAt, t.lastObservedAt
           );
         }
-        // Always re-insert all complaints with coordinates as persistent point hotspots
-        const allLocatedComplaints = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL').all();
-        for (const comp of allLocatedComplaints) {
-          insertHotspot.run(
-            comp.department || 'Ward 23',
-            comp.latitude,
-            comp.longitude,
-            100,
-            1,
-            1,
-            comp.category ? comp.category.toUpperCase() : 'INCIDENT',
-            0.85 + (comp.id * 0.001),
-            'EMERGING',
-            'HIGH',
-            0.95,
-            'ACTIVE',
-            comp.created_at || new Date().toISOString(),
-            comp.created_at || new Date().toISOString()
-          );
-        }
+
       });
       updateHotspotsTx();
 
@@ -2040,37 +2025,6 @@ app.get('/api/planning/hotspots', (req, res) => {
     } else {
       const demands = db.prepare('SELECT * FROM normalized_demands').all();
       mapped = ThemeHotspotEngine.computeHotspots(demands);
-    }
-
-    // Always ensure all reported complaints with coordinates are marked as hotspots
-    try {
-      const complaintsWithCoords = db.prepare('SELECT * FROM complaints WHERE latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY id DESC').all();
-      for (const comp of complaintsWithCoords) {
-        const exists = mapped.some(h => h.complaintId === comp.id);
-        if (!exists) {
-          mapped.unshift({
-            id: 10000 + comp.id,
-            wardId: comp.department ? `${comp.department} Division` : 'Ward 23',
-            centerLat: comp.latitude,
-            centerLng: comp.longitude,
-            radius: 100,
-            demandCount: 1,
-            uniqueCitizenCount: 1,
-            dominantCategory: comp.category ? comp.category.toUpperCase() : 'INCIDENT',
-            intensity: 0.95,
-            recurrence: 'EMERGING',
-            geographicConcentration: 'HIGH',
-            confidence: 0.98,
-            status: 'ACTIVE',
-            firstObservedAt: comp.created_at || new Date().toISOString(),
-            lastObservedAt: comp.created_at || new Date().toISOString(),
-            title: comp.summary,
-            complaintId: comp.id
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Error attaching complaint hotspots:', e);
     }
 
     res.json(mapped);

@@ -20,15 +20,14 @@
 ### 3. 🏛 Citizen Voice & Operations Platform
 - **Natural-Language Voice & Text Reporting (Offline AI)**: Powered by a completely offline browser-based Whisper model (`@xenova/transformers`) and Gemini. Speak your issue naturally; on-device AI transcribes, classifies, geolocates, and automatically routes reports for complete privacy.
 - **Emergency Voice Routing**: Crucial keywords (e.g., "fire", "accident") detected by the offline Whisper model trigger instantaneous SOS dispatch to the nearest Operator and Worker Teams.
-- **Dynamic Real-Time Hotspot Marking**: Reporting an issue triggers instantaneous demand normalization, theme clustering, and dynamic recomputation of GIS demand hotspots with a strict **100-meter radius** reflected live without page reload.
+- **Dynamic Real-Time Hotspot Marking**: Reporting an issue triggers demand normalization, theme clustering, and recomputation of GIS demand hotspots using a deterministic **100-meter Haversine spatial threshold**. A new hotspot is only created if a spatial cluster meets the minimum threshold (≥3 demands from ≥2 unique citizens within 100m).
 - **e-Aadhaar KYC Citizen Registration**: First-time citizens can verify their identity using UIDAI-compliant digitally signed e-Aadhaar PDFs, deriving passcodes (`FIRST4NAME + YYYY`) and claiming a +100 Civic Points welcome grant.
 - **Direct Database Seeding (Zero Frontend Mock Data)**: Central municipal services, Bhubaneswar civic rewards, user timeline activities, and notifications are directly seeded into SQLite (`civiclens.db`) and served via REST APIs.
 - **Dynamic Issue Tracking**: Interactive lifecycle tracker from submission through technician assignment, in-progress repairs, and verified resolution.
 - **Interactive Multi-Layer Leaflet GIS**: Real-time spatial dashboard toggling between:
   - Active Civic Incidents
   - Normalized Development Demands
-  - Geospatial Demand Hotspots (pulsing 100m intensity circles)
-  - Infrastructure Amenities & Baselines
+  - Geospatial Demand Hotspots (100m Haversine spatial clusters with min threshold enforcement)
   - Capital Works Proposals & Approved Portfolios
 - **Hierarchical Workforce Management**: Distinguishes between `Field Worker` and `Department Head` roles. Department Heads receive full overview for their specific category (e.g. Fire, Transit) and can easily filter through All/Active/Resolved jobs.
 - **Emergency Crisis Center**: High-visibility crisis command center for dispatching emergency responders and broadcasting citywide alerts.
@@ -61,7 +60,7 @@ Constraint-Aware Portfolio Optimization (₹5.0 Cr budget slider & exclusion rat
     ↓
 Authority Decision Studio (Human review, override tracking with mandatory justification)
     ↓
-Permanent DecisionRecord Audit Trail (Cryptographically tamper-evident log)
+Permanent Auditable DecisionRecord (persistent decision records with portfolio justifications)
 ```
 
 ---
@@ -74,7 +73,7 @@ Located inside the Operator Portal, the Development Planning Studio provides mun
 | :--- | :--- |
 | **Demand Intelligence** | Real-time stream of normalized citizen inputs with confidence scores, severity ratings, and target groups. Includes an interactive live prompt simulator. |
 | **Themes & Recurrence** | Clusters individual demands into recurring civic themes with coherence scores and unique citizen reach metrics. |
-| **Demand Hotspots** | Spatial clustering identifying high-concentration wards with intensity calculations and dominant civic categories. |
+| **Demand Hotspots** | Deterministic 100-meter Haversine spatial clustering from `normalized_demands`. A cluster qualifies as a hotspot only if it has ≥3 demands from ≥2 unique citizens. Individual complaints are never converted to hotspots. |
 | **Public Data & Evidence** | Official registry for Bhubaneswar Census 2011 demographics, BMC Slum Housing records, and OSM infrastructure. Supports deep-dive evidence inspection (`SUPPORTING`, `CONTRADICTING`, `NEUTRAL`, `INSUFFICIENT_DATA`). |
 | **Proposals** | Catalog of structured capital works proposals with budget, timeline, target ward, beneficiaries, and dependencies. |
 | **Priority Engine** | Full mathematical breakdown of the 11 deterministic factors and weights contributing to each proposal's priority score. |
