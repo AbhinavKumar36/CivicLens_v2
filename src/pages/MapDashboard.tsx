@@ -10,11 +10,11 @@ import L from "leaflet"
 import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { Button } from "@/components/atoms/Button"
+import { useGeolocation } from "@/hooks/useGeolocation"
 import { cn } from "@/utils/utils"
 
 // Constants
 const BHUBANESWAR_CENTER: [number, number] = [20.2961, 85.8245];
-const USER_LOCATION: [number, number] = [19.0760, 72.8777]; // Mumbai command base
 
 export type MapLayerType = 
   | "ISSUES" 
@@ -149,6 +149,8 @@ export function MapDashboard() {
   const [mapZoom, setMapZoom] = useState(13);
   const [locateTrigger, setLocateTrigger] = useState(0);
 
+  const { latitude: userLat, longitude: userLng } = useGeolocation();
+
   // Auto-focus location if passed in navigation state
   useEffect(() => {
     if (location.state?.lat && location.state?.lng) {
@@ -225,10 +227,18 @@ export function MapDashboard() {
   const handleLayerChange = (layer: MapLayerType) => {
     setActiveLayer(layer);
     setSelectedEntity(null);
-    // Always center on Bhubaneswar for all layers
-    setMapCenter(BHUBANESWAR_CENTER);
-    setMapZoom(13);
-    setLocateTrigger(Date.now());
+  };
+
+  const handleLocateMe = () => {
+    if (userLat && userLng) {
+      setMapCenter([userLat, userLng]);
+      setMapZoom(16);
+      setLocateTrigger(prev => prev + 1);
+    } else {
+      setMapCenter(BHUBANESWAR_CENTER);
+      setMapZoom(15);
+      setLocateTrigger(prev => prev + 1);
+    }
   };
 
   return (
@@ -292,6 +302,18 @@ export function MapDashboard() {
               />
             );
           })}
+
+          {/* User Location Marker */}
+          {userLat && userLng && (
+            <Marker 
+              position={[userLat, userLng]} 
+              icon={createIcon({bg: 'bg-primary', border: 'border-primary', text: 'text-primary'}, 'my_location', true)}
+            >
+              <Popup>
+                <div className="font-bold text-foreground">My Location</div>
+              </Popup>
+            </Marker>
+          )}
 
           {/* LAYER 3: DEMAND HOTSPOTS (Pulsing Circles & Heatmap Markers) */}
           {(activeLayer === "HOTSPOTS" || activeLayer === "DEMANDS") && hotspots.map((h: DemandHotspot) => {

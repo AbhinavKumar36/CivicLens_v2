@@ -28,12 +28,12 @@ export function AnonymousReport() {
         latitude: null,
         longitude: null,
       })
-      setTicketRef(`UP-ANON-${response.id || Math.floor(100000 + Math.random() * 900000)}`)
+      setTicketRef(`UP-ANON-${response.id || Date.now().toString().slice(-6)}`)
       setIsSubmitted(true)
     } catch (error) {
       console.error("Failed to submit anonymous report:", error)
       // Fallback: show success anyway with fake ref (for demo purposes)
-      setTicketRef(`UP-ANON-${Math.floor(100000 + Math.random() * 900000)}`)
+      setTicketRef(`UP-ANON-${Date.now().toString().slice(-6)}`)
       setIsSubmitted(true)
     } finally {
       setIsSubmitting(false)

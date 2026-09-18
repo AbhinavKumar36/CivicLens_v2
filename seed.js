@@ -1,12 +1,26 @@
 import Database from 'better-sqlite3';
+import { loadBhubaneswarData } from './server/services/bhubaneswarData.js';
 import fs from 'fs';
 
-console.log("Seeding SQLite database...");
+console.log("Seeding SQLite database deterministically for Bhubaneswar...");
 
 const dbFile = 'civiclens.db';
 const db = new Database(dbFile);
 
+// Enable foreign keys & WAL
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
 db.exec(`
+  DROP TABLE IF EXISTS audit_logs;
+  DROP TABLE IF EXISTS portfolios;
+  DROP TABLE IF EXISTS impact_assessments;
+  DROP TABLE IF EXISTS priority_assessments;
+  DROP TABLE IF EXISTS development_proposals;
+  DROP TABLE IF EXISTS datasets;
+  DROP TABLE IF EXISTS demand_hotspots;
+  DROP TABLE IF EXISTS demand_themes;
+  DROP TABLE IF EXISTS normalized_demands;
   DROP TABLE IF EXISTS complaints;
   DROP TABLE IF EXISTS emergencies;
   DROP TABLE IF EXISTS workers;
@@ -14,112 +28,114 @@ db.exec(`
   DROP TABLE IF EXISTS users;
 `);
 
-db.exec(`
-  CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    role TEXT NOT NULL,
-    avatar TEXT NOT NULL
-  );
+// Recreate all tables
+const schema = fs.readFileSync('server.js', 'utf8');
+const createTablesMatch = schema.match(/db\.exec\(\`([\s\S]*?)\`\);/);
+if (createTablesMatch && createTablesMatch[1]) {
+    db.exec(createTablesMatch[1]);
+} else {
+    console.error("Could not extract schema from server.js. Ensure server.js defines tables in a db.exec block.");
+    process.exit(1);
+}
 
-  CREATE TABLE departments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL
-  );
+// Pseudo-random generator for deterministic seeding
+function getPseudoRandom(seed) {
+  let x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+}
 
-  CREATE TABLE workers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    status TEXT NOT NULL,
-    department_id INTEGER NOT NULL,
-    location_lat REAL NOT NULL,
-    location_lng REAL NOT NULL,
-    FOREIGN KEY(department_id) REFERENCES departments(id)
-  );
-
-  CREATE TABLE complaints (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT NOT NULL,
-    priority TEXT NOT NULL,
-    severity TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    status TEXT NOT NULL,
-    department TEXT NOT NULL,
-    estimated_resolution_time TEXT NOT NULL,
-    worker_id INTEGER,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(worker_id) REFERENCES workers(id)
-  );
-
-  CREATE TABLE emergencies (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,
-    location TEXT NOT NULL,
-    status TEXT NOT NULL,
-    severity TEXT NOT NULL,
-    reported_at TEXT NOT NULL
-  );
-`);
-
-// Insert Users
+// 1. Users
 const insertUser = db.prepare('INSERT INTO users (name, email, role, avatar) VALUES (?, ?, ?, ?)');
-insertUser.run("Priya Sharma", "priya@example.com", "CITIZEN", "https://i.pravatar.cc/150?u=jane");
-insertUser.run("BMC Control Center", "operator@bmc.gov.in", "OPERATOR", "https://i.pravatar.cc/150?u=admin");
-insertUser.run("Rahul Verma", "rahul.worker@bmc.gov.in", "WORKER", "https://i.pravatar.cc/150?u=mike");
+insertUser.run("Priya Sharma", "priya@example.com", "CITIZEN", "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80");
+insertUser.run("Ananya Gupta", "operator@civiclens.gov", "OPERATOR", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80");
+insertUser.run("Rahul Verma", "rahul.worker@civiclens.gov", "WORKER", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80");
 
-// Insert Departments
+// 2. Departments
 const insertDept = db.prepare('INSERT INTO departments (name, description) VALUES (?, ?)');
-insertDept.run("BMC Public Works", "Roads, infrastructure, and public spaces");
-insertDept.run("BMC Solid Waste Management", "Waste management and city cleanliness");
-insertDept.run("Mumbai Traffic Police", "Emergency services and law enforcement");
-insertDept.run("BMC Water Supply", "Utility management and repairs");
+const deptIds = [
+  insertDept.run("Bhubaneswar Public Works", "Roads, infrastructure, and public spaces").lastInsertRowid,
+  insertDept.run("Bhubaneswar Solid Waste Management", "Waste management and city cleanliness").lastInsertRowid,
+  insertDept.run("Bhubaneswar Traffic Control", "Emergency services and law enforcement").lastInsertRowid,
+  insertDept.run("Bhubaneswar Water Supply", "Utility management and repairs").lastInsertRowid
+];
 
-// Insert Workers
-const insertWorker = db.prepare('INSERT INTO workers (name, status, department_id, location_lat, location_lng) VALUES (?, ?, ?, ?, ?)');
-insertWorker.run("Rahul Verma", "Active", 1, 19.0760, 72.8777);
-insertWorker.run("Anjali Desai", "Busy", 3, 19.0822, 72.8850);
-insertWorker.run("Vikram Singh", "Inactive", 2, 19.0700, 72.8710);
-insertWorker.run("Neha Patel", "Active", 4, 19.0900, 72.8600);
-insertWorker.run("Rajesh Kumar", "Busy", 3, 19.0600, 72.8800);
-insertWorker.run("Sanjay Gupta", "Active", 1, 19.0650, 72.8700);
+// 3. Workers
+const insertWorker = db.prepare('INSERT INTO workers (name, status, department_id, location_lat, location_lng, role) VALUES (?, ?, ?, ?, ?, ?)');
+const workerNames = ["Rahul Verma", "Anjali Desai", "Vikram Singh", "Neha Patel", "Rajesh Kumar", "Sanjay Gupta"];
+// Bhubaneswar center: 20.296, 85.824
+const workerIds = workerNames.map((name, i) => {
+    const role = getPseudoRandom(i * 14) > 0.8 ? "HEAD" : "FIELD";
+    return insertWorker.run(
+        name, 
+        ["Active", "Busy", "Inactive"][Math.floor(getPseudoRandom(i * 10) * 3)], 
+        deptIds[Math.floor(getPseudoRandom(i * 11) * deptIds.length)],
+        20.296 + (getPseudoRandom(i * 12) - 0.5) * 0.05,
+        85.824 + (getPseudoRandom(i * 13) - 0.5) * 0.05,
+        role
+    ).lastInsertRowid;
+});
 
-// Insert Complaints
-const insertComplaint = db.prepare('INSERT INTO complaints (category, priority, severity, summary, status, department, estimated_resolution_time, worker_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-
+// 4. Civic Inputs / Complaints
+const insertComplaint = db.prepare('INSERT INTO complaints (category, priority, severity, summary, status, department, estimated_resolution_time, worker_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const categories = ["infrastructure", "water", "sanitation", "power", "environmental", "safety"];
 const priorities = ["Low", "Medium", "High", "Critical"];
 const statuses = ["Pending", "In Progress", "Resolved", "Closed"];
-const depts = ["BMC Public Works", "BMC Water Supply", "BMC Solid Waste Management", "BMC Water Supply", "BMC Solid Waste Management", "Mumbai Traffic Police"];
+const depts = ["Bhubaneswar Public Works", "Bhubaneswar Water Supply", "Bhubaneswar Solid Waste Management", "Bhubaneswar Water Supply", "Bhubaneswar Solid Waste Management", "Bhubaneswar Traffic Control"];
 
-// Seed 30 complaints
-for (let i = 1; i <= 30; i++) {
-  const cat = categories[Math.floor(Math.random() * categories.length)];
-  const prio = priorities[Math.floor(Math.random() * priorities.length)];
-  const stat = statuses[Math.floor(Math.random() * statuses.length)];
-  
-  let summary = "";
-  if (cat === "infrastructure") summary = `Pothole reported on street ${i}`;
-  else if (cat === "water") summary = `Water leak at building ${i}`;
-  else if (cat === "sanitation") summary = `Overflowing trash bins at sector ${i}`;
-  else if (cat === "power") summary = `Streetlight out on avenue ${i}`;
-  else if (cat === "environmental") summary = `Excessive noise/pollution in zone ${i}`;
-  else summary = `Safety hazard near park ${i}`;
-  
+const complaintIds = [];
+for (let i = 1; i <= 50; i++) {
+  const cat = categories[Math.floor(getPseudoRandom(i * 20) * categories.length)];
+  const prio = priorities[Math.floor(getPseudoRandom(i * 21) * priorities.length)];
+  const stat = statuses[Math.floor(getPseudoRandom(i * 22) * statuses.length)];
+  const summary = `${cat.charAt(0).toUpperCase() + cat.slice(1)} issue reported at location ${i}`;
   const dept = depts[categories.indexOf(cat)];
-  const estTime = `${Math.floor(Math.random() * 48) + 2} Hours`;
-  const worker_id = Math.random() > 0.5 ? Math.floor(Math.random() * 6) + 1 : null;
-  const createdAt = new Date(Date.now() - Math.random() * 864000000).toISOString();
+  const estTime = `${Math.floor(getPseudoRandom(i * 23) * 48) + 2} Hours`;
+  const worker_id = getPseudoRandom(i * 24) > 0.5 ? workerIds[Math.floor(getPseudoRandom(i * 25) * workerIds.length)] : null;
+  const lat = 20.296 + (getPseudoRandom(i * 26) - 0.5) * 0.05;
+  const lng = 85.824 + (getPseudoRandom(i * 27) - 0.5) * 0.05;
+  const createdAt = new Date(Date.now() - getPseudoRandom(i * 28) * 864000000).toISOString();
   
-  insertComplaint.run(cat, prio, prio, summary, stat, dept, estTime, worker_id, createdAt);
+  complaintIds.push(insertComplaint.run(cat, prio, prio, summary, stat, dept, estTime, worker_id, lat, lng, createdAt).lastInsertRowid);
 }
 
-// Insert Emergencies
-const insertEmergency = db.prepare('INSERT INTO emergencies (type, location, status, severity, reported_at) VALUES (?, ?, ?, ?, ?)');
-insertEmergency.run("Medical", "CSMT Terminus", "Active", "Critical", new Date().toISOString());
-insertEmergency.run("Fire", "Bandra Kurla Complex", "Active", "Critical", new Date(Date.now() - 3600000).toISOString());
-insertEmergency.run("Traffic Accident", "Western Express Highway", "Resolved", "High", new Date(Date.now() - 8640000).toISOString());
+// 5. Normalized Demands
+const insertDemand = db.prepare(`
+    INSERT INTO normalized_demands (civic_input_id, category, sub_category, title, summary, demand_statement, problem_statement, severity, urgency, language, ward_id, lat, lng, confidence, affected_groups, citizen_id, source, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const wards = ["Ward 23", "Ward 24", "Ward 35", "Ward 42", "Ward 12", "Ward 31"];
+for (let i = 0; i < complaintIds.length; i++) {
+    const lat = 20.296 + (getPseudoRandom(i * 30) - 0.5) * 0.05;
+    const lng = 85.824 + (getPseudoRandom(i * 31) - 0.5) * 0.05;
+    insertDemand.run(
+        complaintIds[i],
+        categories[Math.floor(getPseudoRandom(i * 32) * categories.length)].toUpperCase(),
+        "GENERAL",
+        "Community Need " + i,
+        "Auto-normalized civic demand from citizen report.",
+        "We need immediate attention to this issue.",
+        "The current situation is causing hardship.",
+        ["LOW", "MEDIUM", "HIGH", "CRITICAL"][Math.floor(getPseudoRandom(i * 33) * 4)],
+        ["LOW", "MEDIUM", "HIGH", "CRITICAL"][Math.floor(getPseudoRandom(i * 34) * 4)],
+        "ENGLISH",
+        wards[Math.floor(getPseudoRandom(i * 35) * wards.length)],
+        lat,
+        lng,
+        0.8 + getPseudoRandom(i * 36) * 0.2,
+        "Residents, Commuters",
+        "citizen-" + i,
+        "CITIZEN_REPORT",
+        new Date(Date.now() - getPseudoRandom(i * 37) * 864000000).toISOString()
+    );
+}
 
-console.log("Database seeded successfully with rich prototype data.");
+// 6. Themes & Hotspots
+const insertTheme = db.prepare('INSERT INTO demand_themes (name, summary, category, sub_category, recurrence_status, demand_count, unique_citizen_count, coherence_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+const themeId = insertTheme.run("Water Logging & Drainage", "Severe water logging in commercial areas during monsoon", "INFRASTRUCTURE", "DRAINAGE", "CHRONIC", 24, 45, 0.92).lastInsertRowid;
+
+const insertHotspot = db.prepare('INSERT INTO demand_hotspots (ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count, dominant_category, intensity, recurrence, geographic_concentration, confidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const hotspotId = insertHotspot.run("Ward 23", 20.296, 85.824, 0.5, 45, 120, "INFRASTRUCTURE", 0.85, "HIGH", "DENSE", 0.95, "ACTIVE").lastInsertRowid;
+
+
+console.log("Database seeded successfully with deterministic Bhubaneswar data.");
 db.close();

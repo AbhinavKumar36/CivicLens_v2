@@ -11,7 +11,8 @@
 ## 🌟 Key Capabilities
 
 ### 1. 🏛 Citizen Voice & Operations Platform
-- **Natural-Language Voice & Text Reporting**: Powered by native Google Gemini and the Web Speech API (`Ctrl+M` hotkey). Speak or type civic issues naturally; AI classifies, geolocates, and automatically routes reports to the appropriate department.
+- **Natural-Language Voice & Text Reporting (Offline AI)**: Powered by a completely offline browser-based Whisper model (`@xenova/transformers`) and Gemini. Speak your issue naturally; on-device AI transcribes, classifies, geolocates, and automatically routes reports for complete privacy.
+- **Emergency Voice Routing**: Crucial keywords (e.g., "fire", "accident") detected by the offline Whisper model trigger instantaneous SOS dispatch to the nearest Operator and Worker Teams.
 - **Dynamic Real-Time Hotspot Marking**: Reporting an issue triggers instantaneous demand normalization, theme clustering, and dynamic recomputation of GIS demand hotspots with a strict **100-meter radius** reflected live without page reload.
 - **e-Aadhaar KYC Citizen Registration**: First-time citizens can verify their identity using UIDAI-compliant digitally signed e-Aadhaar PDFs, deriving passcodes (`FIRST4NAME + YYYY`) and claiming a +100 Civic Points welcome grant.
 - **Direct Database Seeding (Zero Frontend Mock Data)**: Central municipal services, Bhubaneswar civic rewards, user timeline activities, and notifications are directly seeded into SQLite (`civiclens.db`) and served via REST APIs.
@@ -23,6 +24,7 @@
   - Infrastructure Amenities & Baselines
   - Capital Works Proposals & Approved Portfolios
 - **Mobile-First Field Worker Dashboard**: High-contrast, touch-optimized field queue for municipal technicians with route guidance and status updates.
+- **Hierarchical Workforce Management**: Distinguishes between `Field Worker` and `Worker Head` roles. Worker Heads receive full departmental overview, team location tracking, and task delegation capabilities.
 - **Emergency Crisis Center**: High-visibility crisis command center for dispatching emergency responders and broadcasting citywide alerts.
 
 ---

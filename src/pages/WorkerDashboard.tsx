@@ -190,10 +190,24 @@ export function WorkerDashboard() {
 
   const activeWorker = React.useMemo(() => {
     const matched = rawWorkers.find((w) => w.name === user?.name)
-    return matched || rawWorkers[0] || { id: 1, name: "Rahul Verma", status: "Busy", department: { name: "Transit" } }
+    return matched || rawWorkers[0] || { id: 1, name: "Rahul Verma", status: "Busy", department: { name: "Transit" }, department_id: 1 }
   }, [rawWorkers, user])
 
-  const workerJobs = React.useMemo(() => rawComplaints.filter((c) => c.worker_id === activeWorker.id), [rawComplaints, activeWorker])
+  const workerJobs = React.useMemo(() => {
+    if (user?.workerRole === "HEAD") {
+      // Head sees all jobs for their department
+      return rawComplaints.filter(c => c.department_id === activeWorker.department_id)
+    }
+    return rawComplaints.filter((c) => c.worker_id === activeWorker.id)
+  }, [rawComplaints, activeWorker, user])
+
+  const teamMembers = React.useMemo(() => {
+    if (user?.workerRole === "HEAD") {
+      return rawWorkers.filter(w => w.department_id === activeWorker.department_id && w.id !== activeWorker.id);
+    }
+    return [];
+  }, [rawWorkers, activeWorker, user])
+
   const completedJobs = workerJobs.filter((j) => j.status === "Resolved" || j.status === "Closed").length
   const activeJobs = workerJobs.length - completedJobs
 
@@ -273,7 +287,7 @@ export function WorkerDashboard() {
               <Headline level={1} className="text-3xl text-primary font-bold">{activeWorker.name}</Headline>
               <BodyText className="text-on-surface-variant flex items-center gap-2 mt-1">
                 <span className="material-symbols-outlined text-sm">badge</span>
-                {activeWorker.department?.name || "General"} Division
+                {activeWorker.department?.name || "General"} Division {user?.workerRole === "HEAD" && "- Head"}
               </BodyText>
             </div>
             <div className="flex items-center gap-2 bg-foreground/5 px-3 py-1.5 rounded-full border border-foreground/10">
@@ -327,7 +341,10 @@ export function WorkerDashboard() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
                 {workerJobs.filter(j => j.latitude && j.longitude).map(job => (
-                  <Marker key={job.id} position={[job.latitude, job.longitude]} />
+                  <Marker key={`job-${job.id}`} position={[job.latitude, job.longitude]} />
+                ))}
+                {teamMembers.filter(m => m.location_lat && m.location_lng).map(member => (
+                  <Marker key={`member-${member.id}`} position={[member.location_lat, member.location_lng]} opacity={0.6} title={member.name} />
                 ))}
                 <Polyline 
                   positions={workerJobs.filter(j => j.latitude && j.longitude).map(j => [j.latitude, j.longitude])}
@@ -375,7 +392,7 @@ export function WorkerDashboard() {
           <div className="flex justify-between items-center mb-4 px-2">
             <Headline level={3} className="text-[20px] flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">assignment</span>
-              Assigned Jobs
+              {user?.workerRole === "HEAD" ? "Team Jobs" : "Assigned Jobs"}
             </Headline>
             <div className="flex items-center gap-2 bg-foreground/5 rounded-full px-1 py-1">
               <button className="px-3 py-1 bg-surface rounded-full text-xs font-bold shadow-sm">All</button>
@@ -485,6 +502,12 @@ export function WorkerDashboard() {
                           </span>
                           {hasPhoto ? "Update Photo" : "Upload Photo"}
                         </motion.button>
+                        {user?.workerRole === "HEAD" && (
+                          <button className="px-4 py-2 text-tertiary hover:bg-tertiary/10 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base">group</span>
+                            Assign
+                          </button>
+                        )}
                         <button className="px-4 py-2 text-primary hover:bg-primary/10 rounded-xl font-bold font-label-sm text-xs transition-colors flex items-center gap-2">
                           <span className="material-symbols-outlined text-base">directions</span>
                           Navigate

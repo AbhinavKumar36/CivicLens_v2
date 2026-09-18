@@ -71,7 +71,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const addNotification = useCallback((notif: Omit<AppNotification, 'id' | 'read' | 'timestamp'>) => {
     const newNotif: AppNotification = {
       ...notif,
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `notif-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       read: false,
       timestamp: Date.now(),
     };

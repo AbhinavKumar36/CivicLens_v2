@@ -8,7 +8,10 @@ import { NotificationProvider } from "./contexts/NotificationContext"
 
 // Lazy loaded page chunks
 const LandingPage = lazy(() => import("./pages/LandingPage").then(m => ({ default: m.LandingPage })));
-const Login = lazy(() => import("./pages/Login").then(m => ({ default: m.Login })));
+const CitizenLogin = lazy(() => import("./pages/CitizenLogin").then(m => ({ default: m.CitizenLogin })));
+const CitizenRegister = lazy(() => import("./pages/CitizenRegister").then(m => ({ default: m.CitizenRegister })));
+const WorkerLogin = lazy(() => import("./pages/WorkerLogin").then(m => ({ default: m.WorkerLogin })));
+const OperatorLogin = lazy(() => import("./pages/OperatorLogin").then(m => ({ default: m.OperatorLogin })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
 const MapDashboard = lazy(() => import("./pages/MapDashboard").then(m => ({ default: m.MapDashboard })));
 const Notifications = lazy(() => import("./pages/Notifications").then(m => ({ default: m.Notifications })));
@@ -63,7 +66,10 @@ export default function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<CitizenLogin />} />
+                <Route path="/register" element={<CitizenRegister />} />
+                <Route path="/worker/login" element={<WorkerLogin />} />
+                <Route path="/operator/login" element={<OperatorLogin />} />
                 <Route path="/report/anonymous" element={<AnonymousReport />} />
                 
                 {/* Protected App Routes inside layout */}

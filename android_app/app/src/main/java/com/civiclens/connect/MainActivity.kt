@@ -11,11 +11,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         findViewById<Button>(R.id.btnCitizen).setOnClickListener {
-            startActivity(Intent(this, CitizenReportActivity::class))
+            startActivity(Intent(this, CitizenReportActivity::class.java))
         }
 
         findViewById<Button>(R.id.btnWorker).setOnClickListener {
-            startActivity(Intent(this, WorkerDashboardActivity::class))
+            startActivity(Intent(this, WorkerDashboardActivity::class.java))
         }
     }
 }

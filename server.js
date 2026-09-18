@@ -48,6 +48,7 @@ db.exec(`
     department_id INTEGER NOT NULL,
     location_lat REAL NOT NULL,
     location_lng REAL NOT NULL,
+    role TEXT DEFAULT 'FIELD',
     FOREIGN KEY(department_id) REFERENCES departments(id)
   );
 
@@ -1692,7 +1693,7 @@ app.post('/api/rewards/redeem', (req, res) => {
     }
 
     const newPoints = currentPoints - reward.points_cost;
-    const voucherCode = `UP-VOUCH-${Math.floor(100000 + Math.random() * 900000)}`;
+    const voucherCode = `UP-VOUCH-${Date.now().toString().slice(-6)}`;
 
     const redeemTx = db.transaction(() => {
       db.prepare('UPDATE users SET points = ? WHERE id = ?').run(newPoints, userId);
@@ -1936,7 +1937,9 @@ app.get('/api/planning/demands', (req, res) => {
     const demands = db.prepare('SELECT * FROM normalized_demands ORDER BY id DESC').all();
     const formatted = demands.map(d => ({
       ...d,
-      affected_groups: d.affected_groups ? JSON.parse(d.affected_groups) : []
+      affected_groups: d.affected_groups 
+        ? (d.affected_groups.startsWith('[') ? JSON.parse(d.affected_groups) : d.affected_groups.split(',').map(s => s.trim())) 
+        : []
     }));
     res.json(formatted);
   } catch (err) {
@@ -2493,6 +2496,28 @@ app.post('/api/planning/ai-context', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'AI context generation error' });
+  }
+});
+
+app.get('/api/dashboard/stats', (req, res) => {
+  try {
+    const totalComplaints = db.prepare('SELECT COUNT(*) as count FROM complaints').get().count;
+    const resolvedComplaints = db.prepare('SELECT COUNT(*) as count FROM complaints WHERE status = "Resolved"').get().count;
+    const activeHotspots = db.prepare('SELECT COUNT(*) as count FROM demand_hotspots WHERE status = "ACTIVE"').get().count;
+    const totalProposals = db.prepare('SELECT COUNT(*) as count FROM development_proposals').get().count;
+
+    const resolutionRate = totalComplaints > 0 ? ((resolvedComplaints / totalComplaints) * 100).toFixed(1) : 100;
+
+    res.json({
+      metrics: [
+        { id: 1, label: "Issues Resolved", value: `${resolutionRate}%`, icon: "check_circle" },
+        { id: 2, label: "Active Hotspots", value: activeHotspots.toString(), icon: "local_fire_department" },
+        { id: 3, label: "Civic Proposals", value: totalProposals.toString(), icon: "description" }
+      ]
+    });
+  } catch (error) {
+    console.error("Failed to fetch dashboard stats:", error);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 

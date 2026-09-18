@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.civiclens.connect.app-debug-31:/layout_activity_main.xml.flat",
+        "source": "com.civiclens.connect.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.civiclens.connect.app-debug-31:/layout_activity_citizen_report.xml.flat",
+        "source": "com.civiclens.connect.app-main-33:/layout/activity_citizen_report.xml"
+    },
+    {
+        "merged": "com.civiclens.connect.app-debug-31:/layout_activity_worker_dashboard.xml.flat",
+        "source": "com.civiclens.connect.app-main-33:/layout/activity_worker_dashboard.xml"
+    }
+]

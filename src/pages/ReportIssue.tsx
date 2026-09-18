@@ -11,6 +11,8 @@ import { api } from "@/services/api"
 import { ManualReportForm } from "@/components/organisms/ManualReportForm"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { useGeolocation } from "@/hooks/useGeolocation"
+import { VoiceReportForm } from "@/components/organisms/VoiceReportForm"
 
 interface ReportData {
   category: string
@@ -28,7 +30,7 @@ export function ReportIssue() {
   const { addNotification } = useNotifications()
   const queryClient = useQueryClient()
   
-  const [reportMode, setReportMode] = useState<"history" | "manual" | "image">("history")
+  const [reportMode, setReportMode] = useState<"history" | "manual" | "image" | "voice">("voice")
   
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -41,6 +43,8 @@ export function ReportIssue() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAnonymous, setIsAnonymous] = useState(false)
+  
+  const { latitude: userLat, longitude: userLng } = useGeolocation()
 
   const { data: rawReports, isLoading: isHistoryLoading } = useQuery({
     queryKey: ['complaints'],
@@ -148,8 +152,8 @@ export function ReportIssue() {
     if (!reportData) return
     setIsSubmitting(true)
     try {
-      let lat = 20.2835;
-      let lng = 85.7697;
+      let lat = userLat || 20.2961;
+      let lng = userLng || 85.8245;
       const lower = (reportData.summary || "").toLowerCase();
       if (lower.includes("bhouma") || lower.includes("unit 4") || lower.includes("unit-4")) {
         lat = 20.2785; lng = 85.8324;
@@ -289,6 +293,16 @@ export function ReportIssue() {
             History & Tracking
           </button>
           <button
+            onClick={() => { setReportMode("voice"); setReportData(null); }}
+            className={cn(
+              "px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
+              reportMode === "voice" ? "bg-primary text-on-primary shadow-md" : "text-on-surface-variant hover:bg-foreground/5"
+            )}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
+            Voice
+          </button>
+          <button
             onClick={() => { setReportMode("image"); setReportData(null); }}
             className={cn(
               "px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
@@ -403,6 +417,23 @@ export function ReportIssue() {
                   <div className="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
+            </motion.div>
+          ) : reportMode === "voice" && !reportData ? (
+            <motion.div
+              key="voice"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="space-y-6 w-full max-w-2xl mx-auto"
+            >
+              <VoiceReportForm 
+                isAnonymous={isAnonymous} 
+                lat={userLat} 
+                lng={userLng} 
+                onExtractedData={(data: any) => {
+                  setReportData(data);
+                }} 
+              />
             </motion.div>
           ) : reportMode === "image" && !reportData ? (
             <motion.div

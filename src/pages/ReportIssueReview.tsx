@@ -13,7 +13,7 @@ export function ReportIssueReview() {
   useEffect(() => {
     const interval = setInterval(() => {
       const base = 98.4
-      const jitter = (Math.random() * 0.2).toFixed(1)
+      const jitter = ((Date.now() % 100) * 0.002).toFixed(1)
       setConfidence(parseFloat((base + parseFloat(jitter)).toFixed(1)))
     }, 3000)
     return () => clearInterval(interval)

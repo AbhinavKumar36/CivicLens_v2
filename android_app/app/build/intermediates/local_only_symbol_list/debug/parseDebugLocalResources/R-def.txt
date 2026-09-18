@@ -1,0 +1,9 @@
+R_DEF: Internal format may change without notice
+local
+id btnCitizen
+id btnRecordVoice
+id btnWorker
+id txtStatus
+layout activity_citizen_report
+layout activity_main
+layout activity_worker_dashboard

@@ -22,7 +22,7 @@ class TranscriptionService {
       // Mocked output for the sake of the Civic Connect prototype:
       // If we detect "fire" or "accident" in a preset list based on length or just randomly:
       const simulatedKeywords = ["There is a huge fire at the main market!", "A severe accident occurred on the highway.", "Normal pothole issue here."];
-      const resultText = simulatedKeywords[Math.floor(Math.random() * simulatedKeywords.length)];
+      const resultText = simulatedKeywords[Date.now() % simulatedKeywords.length];
       
       return resultText;
     } catch (e) {

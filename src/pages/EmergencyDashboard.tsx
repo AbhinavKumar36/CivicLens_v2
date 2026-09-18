@@ -53,8 +53,8 @@ export function EmergencyDashboard() {
         type: "Tier-1 Critical SOS Alert",
         location: "Emergency panic trigger reported from BMC Command Console. Automatic regional triage dispatch initiated.",
         severity: "Critical",
-        latitude: 19.0760 + (Math.random() - 0.5) * 0.02,
-        longitude: 72.8777 + (Math.random() - 0.5) * 0.02
+        latitude: 20.2960 + ((Date.now() % 1000) - 500) / 50000,
+        longitude: 85.8240 + ((Date.now() % 900) - 450) / 50000
       })
       queryClient.invalidateQueries({ queryKey: ['emergencies'] })
       setTimeout(() => {
@@ -73,16 +73,16 @@ export function EmergencyDashboard() {
           type: "Critical Medical Assistance Required",
           location: "Citizen report: Medical emergency distress call. Immediate ambulance dispatch requested.",
           severity: "Critical",
-          latitude: 19.0760 + (Math.random() - 0.5) * 0.02,
-          longitude: 72.8777 + (Math.random() - 0.5) * 0.02
+          latitude: 20.2960 + ((Date.now() % 1000) - 500) / 50000,
+          longitude: 85.8240 + ((Date.now() % 900) - 450) / 50000
         })
       } else {
         await api.createEmergency({
           type: "Multi-Vehicle Collision",
           location: "Traffic Alert: Multiple vehicle crash blocking lanes. Responders and cleanup crew dispatched.",
           severity: "High",
-          latitude: 19.0760 + (Math.random() - 0.5) * 0.02,
-          longitude: 72.8777 + (Math.random() - 0.5) * 0.02
+          latitude: 20.2960 + ((Date.now() % 1000) - 500) / 50000,
+          longitude: 85.8240 + ((Date.now() % 900) - 450) / 50000
         })
       }
       queryClient.invalidateQueries({ queryKey: ['emergencies'] })
