@@ -35,14 +35,10 @@ type TabKey =
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
   { key: "demands", label: "Demand Intelligence", icon: "forum" },
-  { key: "themes", label: "Themes & Recurrence", icon: "repeat" },
   { key: "hotspots", label: "Demand Hotspots", icon: "local_fire_department" },
-  { key: "evidence", label: "Public Data & Evidence", icon: "verified" },
   { key: "proposals", label: "Proposals", icon: "assignment" },
   { key: "priority", label: "Priority Engine", icon: "leaderboard" },
-  { key: "impact", label: "Impact Assessment", icon: "insights" },
-  { key: "portfolio", label: "Portfolio Optimizer", icon: "account_balance_wallet" },
-  { key: "decision", label: "Decision Studio", icon: "gavel" }
+  { key: "portfolio", label: "Portfolio Optimizer", icon: "account_balance_wallet" }
 ];
 
 export function DevelopmentPlanning() {

@@ -5,6 +5,20 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { cn } from "@/utils/utils"
 
+function timeAgo(dateInput: string | Date) {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export function TopAppBar() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
@@ -183,7 +197,7 @@ export function TopAppBar() {
                             </div>
                             <p className="text-xs text-on-surface-variant line-clamp-2">{notif.message}</p>
                             <p className="text-[10px] text-on-surface-variant opacity-60 mt-1 uppercase tracking-wider">
-                              {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {notif.group}
+                              {timeAgo(notif.timestamp)} • {notif.group}
                             </p>
                           </div>
                         </div>

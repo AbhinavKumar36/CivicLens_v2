@@ -11,4 +11,10 @@ export default defineConfig(({ command }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true,
+    watch: {
+      ignored: ['**/android_app/**'],
+    },
+  },
 }))

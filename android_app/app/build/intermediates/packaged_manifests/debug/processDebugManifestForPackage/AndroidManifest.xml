@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <permission
         android:name="com.civiclens.connect.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -24,10 +25,12 @@
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
+        android:icon="@drawable/logo"
         android:label="Civic Connect"
         android:supportsRtl="true"
         android:testOnly="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar" >
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:usesCleartextTraffic="true" >
         <activity
             android:name="com.civiclens.connect.MainActivity"
             android:exported="true" >
@@ -39,6 +42,9 @@
         </activity>
         <activity android:name="com.civiclens.connect.CitizenReportActivity" />
         <activity android:name="com.civiclens.connect.WorkerDashboardActivity" />
+        <activity
+            android:name="com.civiclens.connect.WebFeatureActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"

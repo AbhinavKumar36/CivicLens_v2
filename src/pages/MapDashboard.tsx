@@ -36,9 +36,9 @@ export interface MapIncident {
 }
 
 const MAP_LAYERS = [
-  { id: "ISSUES", label: "Civic Issues", icon: "warning", desc: "Live citizen reported problems" },
-  { id: "DEMANDS", label: "Demands", icon: "dataset", desc: "Normalized multi-channel BMC demands" },
-  { id: "HOTSPOTS", label: "Demand Hotspots", icon: "local_fire_department", desc: "Spatial intensity clusters" },
+  { id: "ISSUES", label: "Civic Issues", icon: "warning", desc: "Live citizen-reported problems (e.g. potholes, broken pipes)" },
+  { id: "DEMANDS", label: "Public Demands", icon: "dataset", desc: "Citizen requests for new infrastructure (e.g. parks, clinics)" },
+  { id: "HOTSPOTS", label: "Demand Hotspots", icon: "local_fire_department", desc: "AI-clustered areas showing high concentrations of public demands" },
   { id: "PROPOSALS", label: "Proposals", icon: "assignment", desc: "Constituency development projects" },
   { id: "PORTFOLIO", label: "Portfolio", icon: "account_balance_wallet", desc: "Feasible funded allocation (₹5 Cr)" }
 ];
@@ -602,7 +602,7 @@ export function MapDashboard() {
           title="Jump to Bhubaneswar Constituency"
         >
           <span className="material-symbols-outlined text-primary text-base">near_me</span>
-          Bhubaneswar Center
+          Locate Me
         </button>
 
         <button 

@@ -76,7 +76,6 @@ export function AppLayout() {
             </AnimatePresence>
           </main>
 
-          <AIOrbFAB />
           <BottomNav />
           <CommandPalette />
           <ToastContainer />

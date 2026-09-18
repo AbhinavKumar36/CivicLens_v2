@@ -2999,6 +2999,7 @@ drawable ic_mtrl_chip_checked_black
 drawable ic_mtrl_chip_checked_circle
 drawable ic_mtrl_chip_close_circle
 drawable ic_search_black_24
+drawable logo
 drawable m3_avd_hide_password
 drawable m3_avd_show_password
 drawable m3_bottom_sheet_drag_handle
@@ -3172,9 +3173,11 @@ id bounce
 id bounceBoth
 id bounceEnd
 id bounceStart
-id btnCitizen
+id btnCitizenProfile
+id btnEmergencySOS
+id btnMapDashboard
 id btnRecordVoice
-id btnWorker
+id btnWorkerDashboard
 id buttonPanel
 id cache_measures
 id callMeasure
@@ -3565,6 +3568,7 @@ id view_tree_saved_state_registry_owner
 id view_tree_view_model_store_owner
 id visible
 id visible_removing_fragment_view_tag
+id webView
 id west
 id withText
 id with_icon
@@ -3690,6 +3694,7 @@ layout abc_select_dialog_material
 layout abc_tooltip
 layout activity_citizen_report
 layout activity_main
+layout activity_web_feature
 layout activity_worker_dashboard
 layout custom_dialog
 layout design_bottom_navigation_item

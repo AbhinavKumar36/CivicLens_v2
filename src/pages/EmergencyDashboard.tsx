@@ -6,6 +6,18 @@ import { GlassPanel } from "@/components/ui/GlassPanel"
 import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { cn } from "@/utils/utils"
 
+const handleSOSDispatch = async (type: string, severity: string) => {
+  if (confirm(`Are you sure you want to dispatch an SOS alert for ${type}?`)) {
+    try {
+      await api.client.post('/api/emergency/sos', { type, location: 'Citywide', severity });
+      alert('SOS Alert Dispatched successfully!');
+    } catch (err) {
+      alert('Failed to dispatch SOS alert.');
+      console.error(err);
+    }
+  }
+}
+
 export function EmergencyDashboard() {
   const queryClient = useQueryClient()
   
@@ -153,6 +165,19 @@ export function EmergencyDashboard() {
                 Cancel Broadcast
               </button>
             )}
+
+            <div className="mt-8 flex gap-3 flex-wrap justify-center">
+              <button onClick={() => handleSOSDispatch('Fire Emergency', 'CRITICAL')} className="px-5 py-2.5 bg-error/20 text-error font-bold rounded-xl hover:bg-error/30 transition-all flex items-center gap-2 border border-error/30">
+                <span className="material-symbols-outlined text-sm">local_fire_department</span> Fire
+              </button>
+              <button onClick={() => handleSOSDispatch('Severe Accident', 'CRITICAL')} className="px-5 py-2.5 bg-orange-600/20 text-orange-400 font-bold rounded-xl hover:bg-orange-600/30 transition-all flex items-center gap-2 border border-orange-600/30">
+                <span className="material-symbols-outlined text-sm">car_crash</span> Accident
+              </button>
+              <button onClick={() => handleSOSDispatch('Medical Emergency', 'HIGH')} className="px-5 py-2.5 bg-blue-600/20 text-blue-400 font-bold rounded-xl hover:bg-blue-600/30 transition-all flex items-center gap-2 border border-blue-600/30">
+                <span className="material-symbols-outlined text-sm">medical_services</span> Medical
+              </button>
+            </div>
+            
             
             <BodyText className="mt-8 text-on-surface-variant max-w-md mx-auto text-sm">
               {sosActive 

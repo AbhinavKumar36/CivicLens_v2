@@ -64,13 +64,18 @@ export function CitizenProfile() {
         <div className="text-center md:text-left">
           <div className="flex flex-col md:flex-row md:items-center gap-2">
             <Headline level={2}>{user?.name || "Priya Sharma"}</Headline>
-            <span className="px-3 py-0.5 rounded-full bg-green-500/10 text-green-400 font-label-sm text-label-sm border border-green-500/20 w-fit mx-auto md:mx-0 flex items-center gap-1">
+            <span className={cn(
+              "px-3 py-0.5 rounded-full font-label-sm text-label-sm border w-fit mx-auto md:mx-0 flex items-center gap-1",
+              user?.role === 'OPERATOR' ? "bg-error/10 text-error border-error/20" :
+              user?.role === 'WORKER' ? "bg-primary/10 text-primary border-primary/20" :
+              "bg-green-500/10 text-green-400 border-green-500/20"
+            )}>
               <span className="material-symbols-outlined text-xs">shield_person</span>
-              {stats?.aadhaarVerified ? "Aadhaar Verified" : "Citizen"}
+              {user?.role === 'OPERATOR' ? "Operator" : user?.role === 'WORKER' ? "Worker" : (stats?.aadhaarVerified ? "Aadhaar Verified" : "Citizen")}
             </span>
           </div>
           <BodyText className="text-on-surface-variant mt-1">
-            Bhubaneswar Municipal Corporation • {stats?.wardId || 'Ward 23 (Bhouma Nagar)'} • {stats?.points ?? 350} Civic Points
+            Bhubaneswar Municipal Corporation • {stats?.wardId || 'Ward 23 (Bhouma Nagar)'} {user?.role === 'CITIZEN' && `• ${stats?.points ?? 350} Civic Points`}
           </BodyText>
         </div>
       </motion.section>
