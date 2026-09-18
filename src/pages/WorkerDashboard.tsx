@@ -164,6 +164,7 @@ export function WorkerDashboard() {
   const [uploadingJobId, setUploadingJobId] = useState(null)
   const [successJobId, setSuccessJobId] = useState(null)
   const [sosAlert, setSosAlert] = useState(null)
+  const [jobFilter, setJobFilter] = useState<"ALL" | "ACTIVE" | "RESOLVED">("ALL")
 
   useEffect(() => {
     const sse = new EventSource('http://localhost:3000/api/emergency/stream')
@@ -201,15 +202,17 @@ export function WorkerDashboard() {
     return rawComplaints.filter((c) => c.worker_id === activeWorker.id)
   }, [rawComplaints, activeWorker, user])
 
-  const teamMembers = React.useMemo(() => {
-    if (user?.workerRole === "HEAD") {
-      return rawWorkers.filter(w => w.department_id === activeWorker.department_id && w.id !== activeWorker.id);
-    }
-    return [];
-  }, [rawWorkers, activeWorker, user])
-
   const completedJobs = workerJobs.filter((j) => j.status === "Resolved" || j.status === "Closed").length
   const activeJobs = workerJobs.length - completedJobs
+
+  const displayedJobs = React.useMemo(() => {
+    return workerJobs.filter(job => {
+      const isResolved = job.status === "Resolved" || job.status === "Closed";
+      if (jobFilter === "ACTIVE") return !isResolved;
+      if (jobFilter === "RESOLVED") return isResolved;
+      return true;
+    });
+  }, [workerJobs, jobFilter]);
 
   const uploadingJob = workerJobs.find((j) => j.id === uploadingJobId)
 
@@ -343,9 +346,6 @@ export function WorkerDashboard() {
                 {workerJobs.filter(j => j.latitude && j.longitude).map(job => (
                   <Marker key={`job-${job.id}`} position={[job.latitude, job.longitude]} />
                 ))}
-                {teamMembers.filter(m => m.location_lat && m.location_lng).map(member => (
-                  <Marker key={`member-${member.id}`} position={[member.location_lat, member.location_lng]} opacity={0.6} title={member.name} />
-                ))}
                 <Polyline 
                   positions={workerJobs.filter(j => j.latitude && j.longitude).map(j => [j.latitude, j.longitude])}
                   pathOptions={{ color: '#ffb0cd', weight: 4, dashArray: '10, 10' }}
@@ -392,26 +392,26 @@ export function WorkerDashboard() {
           <div className="flex justify-between items-center mb-4 px-2">
             <Headline level={3} className="text-[20px] flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">assignment</span>
-              {user?.workerRole === "HEAD" ? "Team Jobs" : "Assigned Jobs"}
+              {user?.workerRole === "HEAD" ? "Department Jobs" : "Assigned Jobs"}
             </Headline>
             <div className="flex items-center gap-2 bg-foreground/5 rounded-full px-1 py-1">
-              <button className="px-3 py-1 bg-surface rounded-full text-xs font-bold shadow-sm">All</button>
-              <button className="px-3 py-1 text-on-surface-variant text-xs font-bold hover:text-on-surface">Active</button>
-              <button className="px-3 py-1 text-on-surface-variant text-xs font-bold hover:text-on-surface">Resolved</button>
+              <button onClick={() => setJobFilter("ALL")} className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${jobFilter === 'ALL' ? 'bg-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>All</button>
+              <button onClick={() => setJobFilter("ACTIVE")} className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${jobFilter === 'ACTIVE' ? 'bg-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>Active</button>
+              <button onClick={() => setJobFilter("RESOLVED")} className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${jobFilter === 'RESOLVED' ? 'bg-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>Resolved</button>
             </div>
           </div>
 
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
             {isLoading ? (
-              <p className="text-sm text-on-surface-variant p-4">Loading jobs...</p>
-            ) : workerJobs.length === 0 ? (
+              <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div></div>
+            ) : displayedJobs.length === 0 ? (
               <GlassPanel className="p-12 text-center text-on-surface-variant mt-10">
                 <span className="material-symbols-outlined text-5xl mb-4 text-primary opacity-50">task_alt</span>
                 <p className="font-semibold text-lg text-foreground mb-2">All clear!</p>
-                <p className="text-sm">No active jobs assigned to {activeWorker.name} right now.</p>
+                <p className="text-sm">No {jobFilter.toLowerCase()} jobs in the {activeWorker.department?.name || "General"} department right now.</p>
               </GlassPanel>
             ) : (
-              workerJobs.map((job) => {
+              displayedJobs.map((job) => {
                 const isCritical = job.priority === "Critical" || job.priority === "High"
                 const isResolved = job.status === "Resolved" || job.status === "Closed"
                 const hasPhoto = !!job.confirmation_photo_url

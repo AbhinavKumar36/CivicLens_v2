@@ -2521,6 +2521,6 @@ app.get('/api/dashboard/stats', (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`CivicLens AI API Server running at http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`CivicLens AI API Server running at http://0.0.0.0:${port}`);
 });

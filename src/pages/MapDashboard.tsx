@@ -316,7 +316,7 @@ export function MapDashboard() {
           )}
 
           {/* LAYER 3: DEMAND HOTSPOTS (Pulsing Circles & Heatmap Markers) */}
-          {(activeLayer === "HOTSPOTS" || activeLayer === "DEMANDS") && hotspots.map((h: DemandHotspot) => {
+          {activeLayer === "HOTSPOTS" && hotspots.map((h: DemandHotspot) => {
             const cat = (h.dominantCategory || "").toUpperCase();
             const isDrainage = cat === "DRAINAGE";
             const isEnv = cat.includes("ENV") || cat.includes("TREE") || cat.includes("PARK");
