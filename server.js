@@ -10,6 +10,9 @@ import { EvidenceEngine } from './server/services/evidenceEngine.js';
 import { getAllWardDemographics, getWardDemographics, getNearbyAmenities, loadBhubaneswarData } from './server/services/bhubaneswarData.js';
 import { verifyAadhaarDocument, deriveAadhaarPassword, generateTestAadhaarPdf } from './server/services/aadhaarVerifier.js';
 import { TranscriptionService } from './server/services/transcriptionService.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const https = require('https');
 
 const app = express();
 const port = 3000;
@@ -337,6 +340,9 @@ try {
   }
   if (!userCols.includes('points')) {
     db.exec('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 100;');
+  }
+  if (!userCols.includes('mobile')) {
+    db.exec('ALTER TABLE users ADD COLUMN mobile TEXT;');
   }
 } catch (e) {
   console.warn('Migration note:', e.message);
@@ -1807,6 +1813,113 @@ app.get('/api/dashboard/stats', (req, res) => {
   }
 });
 
+// TextBee SMS Configuration
+const TEXTBEE_API_KEY = 'txb_Ahc95bITKpmHWGD0s97udSCARdy1Je0Y';
+const TEXTBEE_DEVICE_ID = '6a76ddc4c60502a8e778bb92';
+
+// In-memory OTP store { mobile: { otp, expiresAt } }
+const otpStore = new Map();
+
+function sendTextbeeSMS(phoneNumber, message) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      recipients: [phoneNumber.replace(/[^0-9+]/g, '')],
+      message,
+    });
+    const options = {
+      hostname: 'api.textbee.dev',
+      path: `/api/v1/gateway/devices/${TEXTBEE_DEVICE_ID}/send-sms`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': TEXTBEE_API_KEY,
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true, statusCode: res.statusCode });
+        } else {
+          reject(new Error(`TextBee error ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// 1. Check if citizen exists by mobile number
+app.post('/api/auth/citizen/check', (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile) return res.status(400).json({ error: 'mobile is required' });
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    const user = db.prepare("SELECT id, name, email, role, avatar FROM users WHERE mobile = ? OR email LIKE ?").get(cleanMobile, `%${cleanMobile}%`);
+    if (user && user.role === 'CITIZEN') {
+      res.json({ exists: true, name: user.name });
+    } else {
+      res.json({ exists: false });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Send OTP via TextBee SMS
+app.post('/api/auth/citizen/send-otp', async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile) return res.status(400).json({ error: 'mobile is required' });
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    
+    const phoneNumber = cleanMobile.startsWith('91') ? `+${cleanMobile}` : `+91${cleanMobile}`;
+    await sendTextbeeSMS(phoneNumber, `Your CivicLens OTP is: ${otp}. Valid for 5 minutes. Do not share this with anyone.`);
+    
+    console.log(`OTP sent to ${phoneNumber}: ${otp}`);
+    res.json({ success: true, message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error('TextBee SMS error:', err.message);
+    res.status(500).json({ error: 'Failed to send OTP. Check your device is online in TextBee.' });
+  }
+});
+
+// 3. Verify OTP and log citizen in
+app.post('/api/auth/citizen/verify-otp', (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) return res.status(400).json({ error: 'mobile and otp are required' });
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    
+    const stored = otpStore.get(cleanMobile);
+    if (!stored) return res.status(400).json({ error: 'No OTP requested for this number. Please request again.' });
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(cleanMobile);
+      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    }
+    if (stored.otp !== otp.toString()) {
+      return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
+    }
+    
+    otpStore.delete(cleanMobile);
+    
+    // Fetch the citizen user
+    const user = db.prepare("SELECT id, name, email, role, avatar FROM users WHERE mobile = ? OR email LIKE ?").get(cleanMobile, `%${cleanMobile}%`);
+    if (!user) return res.status(404).json({ error: 'Citizen not found. Please register first.' });
+    
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Citizen Registration with Aadhaar KYC Verification
 app.post('/api/auth/register-citizen', (req, res) => {
   try {
@@ -1860,9 +1973,10 @@ app.post('/api/auth/register-citizen', (req, res) => {
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(existingUser.id);
     } else {
       const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fullName)}`;
+      const cleanMobile = mobile ? mobile.replace(/[^0-9]/g, '').slice(-10) : null;
       const insert = db.prepare(`
-        INSERT INTO users (name, email, role, avatar, aadhaar_number, dob, ward_id, aadhaar_verified, aadhaar_verified_at, points)
-        VALUES (?, ?, 'CITIZEN', ?, ?, ?, ?, 1, ?, 100)
+        INSERT INTO users (name, email, role, avatar, aadhaar_number, dob, ward_id, aadhaar_verified, aadhaar_verified_at, points, mobile)
+        VALUES (?, ?, 'CITIZEN', ?, ?, ?, ?, 1, ?, 100, ?)
       `);
       const result = insert.run(
         fullName,
@@ -1871,7 +1985,8 @@ app.post('/api/auth/register-citizen', (req, res) => {
         aadhaarNumber || 'XXXX-XXXX-9901',
         dateOfBirth,
         wardId || 'Ward 23',
-        new Date().toISOString()
+        new Date().toISOString(),
+        cleanMobile
       );
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
     }

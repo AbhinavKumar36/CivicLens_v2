@@ -12,6 +12,7 @@ import { Headline, BodyText, Label } from "@/components/atoms/Typography"
 import { Button } from "@/components/atoms/Button"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { cn } from "@/utils/utils"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Constants
 const BHUBANESWAR_CENTER: [number, number] = [20.2961, 85.8245];
@@ -20,8 +21,7 @@ export type MapLayerType =
   | "ISSUES" 
   | "DEMANDS" 
   | "HOTSPOTS" 
-  | "PROPOSALS" 
-  | "PORTFOLIO";
+  | "PROPOSALS";
 
 export interface MapIncident {
   id: number;
@@ -35,11 +35,10 @@ export interface MapIncident {
 }
 
 const MAP_LAYERS = [
-  { id: "ISSUES",   label: "Civic Issues",    icon: "warning",                 desc: "Individual citizen-reported incidents (potholes, broken pipes, etc.)" },
-  { id: "DEMANDS",  label: "Public Demands",   icon: "dataset",                 desc: "Normalized development needs extracted from citizen voices" },
-  { id: "HOTSPOTS", label: "Demand Hotspots",  icon: "local_fire_department",   desc: "Geographic clusters of recurring public demands (≥3 demands, ≥2 citizens, 100m radius)" },
-  { id: "PROPOSALS",label: "Proposals",        icon: "assignment",              desc: "Constituency development projects evaluated by the Priority Engine" },
-  { id: "PORTFOLIO",label: "Portfolio",         icon: "account_balance_wallet", desc: "Feasible funded allocation (₹5 Cr budget)" }
+  { id: "ISSUES",   label: "Civic Issues",    icon: "warning",               desc: "Individual citizen-reported incidents (potholes, broken pipes, etc.)" },
+  { id: "DEMANDS",  label: "Public Demands",   icon: "dataset",               desc: "Normalized development needs extracted from citizen voices" },
+  { id: "HOTSPOTS", label: "Demand Hotspots",  icon: "local_fire_department", desc: "Geographic clusters of recurring public demands (≥3 demands, ≥2 citizens, 100m radius)" },
+  { id: "PROPOSALS",label: "Proposals",        icon: "assignment",            desc: "Capital works proposals — green badge = recommended in ₹5Cr portfolio, orange = excluded" },
 ];
 
 // Custom Leaflet Icons
@@ -104,6 +103,7 @@ function MapController({ center, zoom, trigger }: { center: [number, number], zo
 export function MapDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   
   // Layer Selection State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("HOTSPOTS");
@@ -381,8 +381,8 @@ export function MapDashboard() {
             );
           })}
 
-          {/* LAYER 4 & 5: PROPOSALS & PORTFOLIO */}
-          {(activeLayer === "PROPOSALS" || activeLayer === "PORTFOLIO") && proposals.map((p: DevelopmentProposal) => {
+          {/* LAYER 4: PROPOSALS (green badge = portfolio-selected, orange = excluded) */}
+          {activeLayer === "PROPOSALS" && proposals.map((p: DevelopmentProposal) => {
             const isFunded = fundedProposalIds.has(p.id);
             return (
               <Marker
@@ -422,12 +422,14 @@ export function MapDashboard() {
             ))}
           </div>
 
-          <button 
-            onClick={() => navigate("/admin/planning")} 
-            className="text-[11px] font-bold text-primary hover:underline px-3 py-1 flex items-center gap-1"
-          >
-            Planning Studio <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
+          {user?.role === 'OPERATOR' && (
+            <button 
+              onClick={() => navigate("/admin/planning")} 
+              className="text-[11px] font-bold text-primary hover:underline px-3 py-1 flex items-center gap-1"
+            >
+              Planning Studio <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          )}
         </GlassPanel>
       </div>
 
