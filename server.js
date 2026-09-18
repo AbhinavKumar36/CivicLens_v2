@@ -346,8 +346,8 @@ try {
 // Auto-Seed Bhubaneswar Development Planning Data
 // -------------------------------------------------------------
 function seedPlanningDataIfEmpty() {
-  const existingDemands = db.prepare('SELECT count(*) as count FROM normalized_demands').get().count;
-  if (existingDemands >= 50) return;
+  const existingProposals = db.prepare('SELECT count(*) as count FROM development_proposals').get().count;
+  if (existingProposals > 0) return;
 
   console.log('⚡ Initializing CivicLens Development Planning datasets, 184 demands, and proposals for Bhubaneswar...');
 

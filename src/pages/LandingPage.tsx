@@ -47,7 +47,9 @@ export function LandingPage() {
           {/* 3D Background Pipeline */}
           <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
             <Canvas camera={{ position: [0, 2, 12], fov: 45 }}>
-              <CivicPipeline3D />
+              <React.Suspense fallback={null}>
+                <CivicPipeline3D />
+              </React.Suspense>
             </Canvas>
           </div>
           

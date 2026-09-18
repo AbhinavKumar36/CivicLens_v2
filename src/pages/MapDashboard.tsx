@@ -230,10 +230,31 @@ export function MapDashboard() {
   };
 
   const handleLocateMe = () => {
-    if (userLat && userLng) {
-      setMapCenter([userLat, userLng]);
-      setMapZoom(16);
-      setLocateTrigger(prev => prev + 1);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter([position.coords.latitude, position.coords.longitude]);
+          setMapZoom(16);
+          setLocateTrigger(prev => prev + 1);
+        },
+        (error) => {
+          console.warn("Locate Me failed:", error);
+          let errorMessage = "Unable to retrieve your location.";
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = "Location permission denied. Please allow location access in your browser settings.";
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = "Location information is unavailable. Check if your device's location services are turned on.";
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = "The request to get user location timed out.";
+          }
+          alert(errorMessage);
+          
+          setMapCenter(BHUBANESWAR_CENTER);
+          setMapZoom(15);
+          setLocateTrigger(prev => prev + 1);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     } else {
       setMapCenter(BHUBANESWAR_CENTER);
       setMapZoom(15);

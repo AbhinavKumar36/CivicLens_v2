@@ -10,7 +10,14 @@
 
 ## 🌟 Key Capabilities
 
-### 1. 🏛 Citizen Voice & Operations Platform
+### 1. 🚀 Immersive 3D Landing Experience
+- **Interactive 3D Web Environment**: A breathtaking landing page built with `react-three-fiber` and `framer-motion`, featuring floating 3D infrastructure models, dynamic lighting, and scroll-driven camera animations.
+
+### 2. 📱 Native Hybrid Android App
+- **Kotlin-Based WebView Container**: A custom native Android application that bridges hardware capabilities (Camera, Mic, GPS) directly with the responsive React Web App over the local network.
+- **Role-Based Navigation**: Native dashboard UI with instant deep-linking into Citizen Profile, Worker Dashboard, Map Planning, and Emergency SOS.
+
+### 3. 🏛 Citizen Voice & Operations Platform
 - **Natural-Language Voice & Text Reporting (Offline AI)**: Powered by a completely offline browser-based Whisper model (`@xenova/transformers`) and Gemini. Speak your issue naturally; on-device AI transcribes, classifies, geolocates, and automatically routes reports for complete privacy.
 - **Emergency Voice Routing**: Crucial keywords (e.g., "fire", "accident") detected by the offline Whisper model trigger instantaneous SOS dispatch to the nearest Operator and Worker Teams.
 - **Dynamic Real-Time Hotspot Marking**: Reporting an issue triggers instantaneous demand normalization, theme clustering, and dynamic recomputation of GIS demand hotspots with a strict **100-meter radius** reflected live without page reload.
@@ -23,13 +30,12 @@
   - Geospatial Demand Hotspots (pulsing 100m intensity circles)
   - Infrastructure Amenities & Baselines
   - Capital Works Proposals & Approved Portfolios
-- **Mobile-First Field Worker Dashboard**: High-contrast, touch-optimized field queue for municipal technicians with route guidance and status updates.
-- **Hierarchical Workforce Management**: Distinguishes between `Field Worker` and `Worker Head` roles. Worker Heads receive full departmental overview, team location tracking, and task delegation capabilities.
+- **Hierarchical Workforce Management**: Distinguishes between `Field Worker` and `Department Head` roles. Department Heads receive full overview for their specific category (e.g. Fire, Transit) and can easily filter through All/Active/Resolved jobs.
 - **Emergency Crisis Center**: High-visibility crisis command center for dispatching emergency responders and broadcasting citywide alerts.
 
 ---
 
-### 2. 🧠 Constituency Development Planning Intelligence
+### 4. 🧠 Constituency Development Planning Intelligence
 CivicLens transforms uncoordinated citizen complaints into auditable, data-backed capital improvement portfolios:
 
 ```
@@ -125,22 +131,13 @@ CivicLens adheres to a strict **truthfulness standard**:
 
 ---
 
-## 🆔 Aadhaar Identity Verification
-
-CivicLens preserves the exact Aadhaar verification method from `civic_v3`:
-- Verifies password-protected e-Aadhaar PDF documents.
-- Inspects the document for embedded digital signature dictionaries (`/Type /Sig`, `/ByteRange`).
-- Uses UIDAI standard password derivation: `FIRST4CHARS_NAME_UPPERCASE + YEAR_OF_BIRTH` (e.g. `PRIY1996`).
-- Truthfully reports tamper status with exact `civic_v3` error messaging (`"No digital signature found. The Aadhaar PDF might be tampered with."`) without fabricating cryptographic integrity claims.
-
----
-
 ## 🏗 Technology Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Vanilla CSS custom properties.
-- **State & Routing**: React Router v6 (lazy-loaded chunks), TanStack Query.
-- **Data Visualizations & GIS**: Recharts (Radar, Area, Bar, Pie charts), Leaflet + React-Leaflet (OpenStreetMap).
-- **AI Core**: Google Gemini Generative AI SDK (`gemini-3.5-flash` with cascading fallback to `gemini-2.5-flash` and local offline mock).
+- **Native Mobile**: Kotlin, Android Studio, WebViews.
+- **3D Render Engine**: Three.js, React Three Fiber, React Three Drei.
+- **Data Visualizations & GIS**: Recharts, Leaflet + React-Leaflet (OpenStreetMap).
+- **AI Core**: Google Gemini Generative AI SDK (`gemini-3.5-flash` with cascading fallback to `gemini-2.5-flash`) and Xenova Transformers (on-device local offline Whisper model).
 - **Backend Server**: Node.js, Express, RESTful JSON API.
 - **Database**: SQLite with `better-sqlite3` (WAL mode enabled, foreign keys enforced).
 
@@ -161,12 +158,18 @@ npm install
 # 2. Configure environment (optional)
 echo VITE_GEMINI_API_KEY=your_gemini_api_key_here > .env
 
-# 3. Start development server (launches both frontend on 5174 and Express API on 3000)
+# 3. Start development server
 npm run dev
 ```
 
-- **Frontend**: `http://localhost:5174`
-- **Backend API**: `http://localhost:3000`
+- **Frontend**: `http://localhost:5173` (exposed on Network via `0.0.0.0` for Native App access)
+- **Backend API**: `http://localhost:3000` (bound to `0.0.0.0` to permit remote physical device queries)
+
+### Running on Physical Android Device
+1. Find your computer's local IP address (e.g. `192.168.1.5`).
+2. Update the IP address inside `src/services/api.ts` (`VITE_API_URL`) and `android_app/.../MainActivity.kt` (`BASE_URL`).
+3. Connect your Android device via USB and ensure it's on the same WiFi network.
+4. Open the `android_app/` folder in Android Studio and hit **Run**.
 
 ---
 
