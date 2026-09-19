@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useNavigate, useLocation, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/contexts/AuthContext"
+import { apiClient } from "@/services/api"
 
 type Step = "ENTER_MOBILE" | "ENTER_OTP"
 
@@ -38,13 +39,8 @@ export function CitizenLogin() {
     }
     setLoading(true)
     try {
-      const res = await fetch("/api/auth/citizen/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleanMobile })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Server error")
+      const res = await apiClient.post("/auth/citizen/check", { mobile: cleanMobile })
+      const data = res.data
 
       if (!data.exists) {
         navigate("/register", { state: { mobile: cleanMobile } })
@@ -53,18 +49,13 @@ export function CitizenLogin() {
 
       setCitizenName(data.name)
       // Send OTP
-      const otpRes = await fetch("/api/auth/citizen/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleanMobile })
-      })
-      const otpData = await otpRes.json()
-      if (!otpRes.ok) throw new Error(otpData.error || "Failed to send OTP")
+      const otpRes = await apiClient.post("/auth/citizen/send-otp", { mobile: cleanMobile })
+      const otpData = otpRes.data
 
       setStep("ENTER_OTP")
       startResendTimer()
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.")
+      setError(err.response?.data?.error || err.message || "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -80,13 +71,8 @@ export function CitizenLogin() {
     setLoading(true)
     try {
       const cleanMobile = mobile.replace(/[^0-9]/g, "").slice(-10)
-      const res = await fetch("/api/auth/citizen/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleanMobile, otp })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Invalid OTP")
+      const res = await apiClient.post("/auth/citizen/verify-otp", { mobile: cleanMobile, otp })
+      const data = res.data
 
       login({
         id: data.user.id,
@@ -99,7 +85,7 @@ export function CitizenLogin() {
       const from = (location.state as any)?.from?.pathname || "/dashboard"
       navigate(from, { replace: true })
     } catch (err: any) {
-      setError(err.message || "OTP verification failed.")
+      setError(err.response?.data?.error || err.message || "OTP verification failed.")
     } finally {
       setLoading(false)
     }
@@ -111,16 +97,11 @@ export function CitizenLogin() {
     setLoading(true)
     try {
       const cleanMobile = mobile.replace(/[^0-9]/g, "").slice(-10)
-      const res = await fetch("/api/auth/citizen/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: cleanMobile })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to resend OTP")
+      const res = await apiClient.post("/auth/citizen/send-otp", { mobile: cleanMobile })
+      const data = res.data
       startResendTimer()
     } catch (err: any) {
-      setError(err.message)
+      setError(err.response?.data?.error || err.message)
     } finally {
       setLoading(false)
     }

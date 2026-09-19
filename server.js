@@ -1881,7 +1881,7 @@ app.post('/api/auth/citizen/send-otp', async (req, res) => {
     otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
     
     const phoneNumber = cleanMobile.startsWith('91') ? `+${cleanMobile}` : `+91${cleanMobile}`;
-    await sendTextbeeSMS(phoneNumber, `Your CivicLens OTP is: ${otp}. Valid for 5 minutes. Do not share this with anyone.`);
+    await sendTextbeeSMS(phoneNumber, `Your CivicLens is: ${otp}.`);
     
     console.log(`OTP sent to ${phoneNumber}: ${otp}`);
     res.json({ success: true, message: 'OTP sent successfully' });
@@ -1920,8 +1920,32 @@ app.post('/api/auth/citizen/verify-otp', (req, res) => {
   }
 });
 
+// 4. Verify OTP during Registration (does not require user to exist)
+app.post('/api/auth/citizen/verify-registration-otp', (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) return res.status(400).json({ error: 'mobile and otp are required' });
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    
+    const stored = otpStore.get(cleanMobile);
+    if (!stored) return res.status(400).json({ error: 'No OTP requested for this number. Please request again.' });
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(cleanMobile);
+      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    }
+    if (stored.otp !== otp.toString()) {
+      return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
+    }
+    
+    otpStore.delete(cleanMobile);
+    res.json({ success: true, message: 'Mobile number verified successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Citizen Registration with Aadhaar KYC Verification
-app.post('/api/auth/register-citizen', (req, res) => {
+app.post('/api/auth/register-citizen', async (req, res) => {
   try {
     const { fullName, dateOfBirth, email, mobile, wardId, fileBase64, aadhaarNumber } = req.body;
 
@@ -1938,7 +1962,7 @@ app.post('/api/auth/register-citizen', (req, res) => {
       buffer = testPdf.buffer;
     }
 
-    const verificationResult = verifyAadhaarDocument(buffer, fullName, dateOfBirth);
+    const verificationResult = await verifyAadhaarDocument(buffer, fullName, dateOfBirth);
     if (!verificationResult.isValid) {
       return res.status(400).json({
         error: verificationResult.error || 'Aadhaar verification failed.',

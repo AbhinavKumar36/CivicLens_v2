@@ -2,8 +2,8 @@ import axios from "axios";
 import { MOCK_REPORTS } from "../utils/mock-data";
 
 // Create Axios instance pointing to our new local Express server
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://192.168.29.118:3000/api",
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
   headers: {
     "Content-type": "application/json",
   },
@@ -130,6 +130,11 @@ export const api = {
   },
 
   // CITIZEN AADHAAR REGISTRATION & VERIFICATION
+  verifyRegistrationOtp: async (data: { mobile: string; otp: string }) => {
+    const response = await apiClient.post("/auth/citizen/verify-registration-otp", data);
+    return response.data;
+  },
+  
   registerCitizen: async (data: {
     fullName: string;
     dateOfBirth: string;
