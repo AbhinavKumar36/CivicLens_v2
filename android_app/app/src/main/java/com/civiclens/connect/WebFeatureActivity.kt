@@ -22,7 +22,7 @@ class WebFeatureActivity : AppCompatActivity() {
         setContentView(R.layout.activity_web_feature)
 
         val webView: WebView = findViewById(R.id.webView)
-        val url = intent.getStringExtra("WEB_URL") ?: "http://192.168.29.118:5173"
+        val url = intent.getStringExtra("WEB_URL") ?: "http://localhost:5173"
 
         setupWebView(webView)
         checkPermissions()
