@@ -56,9 +56,9 @@ export interface DemandHotspot {
   dominantCategory: string;
   intensity: number;
   recurrence: string;
-  geographicConcentration: string;
-  confidence: number;
-  status: string;
+  geographicConcentration: "LOW" | "MEDIUM" | "HIGH";
+  clusterStrength: number;
+  status: "ACTIVE" | "RESOLVED" | "MERGED";
   firstObservedAt: string;
   lastObservedAt: string;
 }

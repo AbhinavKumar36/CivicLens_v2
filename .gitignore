@@ -38,3 +38,8 @@ scratch/
 
 
 android_app/.gradle/
+
+# Android Build Artifacts
+android_app/app/build/
+android_app/.gradle/
+

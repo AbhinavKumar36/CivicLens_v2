@@ -188,10 +188,10 @@ export function ReportIssue() {
       queryClient.invalidateQueries({ queryKey: ['planning-hotspots'] })
 
       addNotification({
-        title: "Real-Time Hotspot Marked!",
-        message: response.message || "Demand hotspot dynamically recomputed with 100m radius.",
+        title: response.hotspot ? "Demand Hotspot Matched!" : "Issue Reported",
+        message: response.message || "Demand logged successfully.",
         type: "success",
-        group: "emergency"
+        group: "system"
       })
 
       navigate(`/reports/${response.id}`)
@@ -206,29 +206,14 @@ export function ReportIssue() {
   const handleManualSubmit = async (data: { category: string; severity: string; description: string; location: string; image: string | null }) => {
     setIsSubmitting(true)
     try {
-      let lat = 20.2835;
-      let lng = 85.7697;
+      let lat = null;
+      let lng = null;
 
-      const locText = (data.location + " " + data.description).toLowerCase();
       if (data.location) {
         const coordMatch = data.location.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
         if (coordMatch) {
           lat = parseFloat(coordMatch[1]);
           lng = parseFloat(coordMatch[2]);
-        } else if (locText.includes('sum') || locText.includes('khandagiri') || locText.includes('nh 16') || locText.includes('nh-16')) {
-          lat = 20.2835; lng = 85.7697;
-        } else if (locText.includes('23') || locText.includes('bhouma') || locText.includes('unit 4')) {
-          lat = 20.2785; lng = 85.8324;
-        } else if (locText.includes('24') || locText.includes('saheed')) {
-          lat = 20.2882; lng = 85.8501;
-        } else if (locText.includes('35') || locText.includes('rasulgarh')) {
-          lat = 20.2961; lng = 85.8712;
-        } else if (locText.includes('42') || locText.includes('nayapalli')) {
-          lat = 20.3015; lng = 85.8152;
-        } else if (locText.includes('12') || locText.includes('chandrasekharpur') || locText.includes('patia')) {
-          lat = 20.3245; lng = 85.8182;
-        } else if (locText.includes('31') || locText.includes('old town')) {
-          lat = 20.2421; lng = 85.8354;
         }
       }
 
@@ -251,10 +236,10 @@ export function ReportIssue() {
       queryClient.invalidateQueries({ queryKey: ['planning-hotspots'] })
 
       addNotification({
-        title: "Real-Time Hotspot Marked!",
-        message: response.message || "Demand hotspot dynamically recomputed with 100m radius.",
+        title: response.hotspot ? "Demand Hotspot Matched!" : "Issue Reported",
+        message: response.message || "Demand logged successfully.",
         type: "success",
-        group: "emergency"
+        group: "system"
       })
 
       navigate(`/reports/${response.id}`)

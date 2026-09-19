@@ -132,7 +132,7 @@ db.exec(`
     intensity REAL NOT NULL,
     recurrence TEXT NOT NULL,
     geographic_concentration TEXT NOT NULL,
-    confidence REAL NOT NULL,
+    cluster_strength REAL NOT NULL,
     status TEXT DEFAULT 'ACTIVE',
     first_observed_at TEXT,
     last_observed_at TEXT
@@ -639,14 +639,14 @@ function seedPlanningDataIfEmpty() {
   const insertHotspot = db.prepare(`
     INSERT INTO demand_hotspots (
       ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
-      dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
+      dominant_category, intensity, recurrence, geographic_concentration, cluster_strength, status, first_observed_at, last_observed_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   hotspots.forEach(h => {
     insertHotspot.run(
       h.wardId, h.centerLat, h.centerLng, h.radius, h.demandCount, h.uniqueCitizenCount,
-      h.dominantCategory, h.intensity, h.recurrence, h.geographicConcentration, h.confidence,
+      h.dominantCategory, h.intensity, h.recurrence, h.geographicConcentration, h.clusterStrength,
       h.status, h.firstObservedAt, h.lastObservedAt
     );
   });
@@ -852,13 +852,13 @@ try {
     const insertHotspot = db.prepare(`
       INSERT INTO demand_hotspots (
         ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
-        dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
+        dominant_category, intensity, recurrence, geographic_concentration, cluster_strength, status, first_observed_at, last_observed_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     hotspots.forEach(h => {
       insertHotspot.run(
         h.wardId, h.centerLat, h.centerLng, h.radius, h.demandCount, h.uniqueCitizenCount,
-        h.dominantCategory, h.intensity, h.recurrence, h.geographicConcentration, h.confidence,
+        h.dominantCategory, h.intensity, h.recurrence, h.geographicConcentration, h.clusterStrength,
         h.status, h.firstObservedAt, h.lastObservedAt
       );
     });
@@ -1298,38 +1298,9 @@ app.post('/api/complaints', (req, res) => {
       assignedWorkerId = firstWorker ? firstWorker.id : null;
     }
 
-    // Smart Geolocation Resolver for Bhubaneswar Municipal Corporation
-    let finalLat = latitude ? Number(latitude) : null;
-    let finalLng = longitude ? Number(longitude) : null;
-    const lowerSummary = (summary || '').toLowerCase();
-
-    if (!finalLat || !finalLng || (Math.abs(finalLat - 20.2785) < 0.001 && Math.abs(finalLng - 85.8324) < 0.001 && !lowerSummary.includes('bhouma'))) {
-      if (lowerSummary.includes('sum hospital') || lowerSummary.includes('sum') || lowerSummary.includes('nh 16') || lowerSummary.includes('khandagiri')) {
-        finalLat = 20.2835;
-        finalLng = 85.7697;
-      } else if (lowerSummary.includes('patia') || lowerSummary.includes('kiit')) {
-        finalLat = 20.3541;
-        finalLng = 85.8175;
-      } else if (lowerSummary.includes('nayapalli') || lowerSummary.includes('irc')) {
-        finalLat = 20.3015;
-        finalLng = 85.8152;
-      } else if (lowerSummary.includes('saheed nagar')) {
-        finalLat = 20.2882;
-        finalLng = 85.8501;
-      } else if (lowerSummary.includes('rasulgarh')) {
-        finalLat = 20.2961;
-        finalLng = 85.8712;
-      } else if (lowerSummary.includes('old town') || lowerSummary.includes('lingaraj')) {
-        finalLat = 20.2421;
-        finalLng = 85.8354;
-      } else if (lowerSummary.includes('baramunda')) {
-        finalLat = 20.2742;
-        finalLng = 85.7952;
-      } else if (!finalLat) {
-        finalLat = 20.2835;
-        finalLng = 85.7697;
-      }
-    }
+    // Preserve exact provided coordinates or NULL. Do not fake coordinates.
+    let finalLat = latitude != null ? Number(latitude) : null;
+    let finalLng = longitude != null ? Number(longitude) : null;
 
     const insert = db.prepare(`
       INSERT INTO complaints (category, priority, severity, summary, status, department, estimated_resolution_time, worker_id, latitude, longitude, image_url, created_at)
@@ -1353,8 +1324,8 @@ app.post('/api/complaints', (req, res) => {
       normalized = NormalizationEngine.normalize({
         text: summary,
         category,
-        lat: latitude || 20.296,
-        lng: longitude || 85.824,
+          lat: latitude != null ? latitude : null,
+          lng: longitude != null ? longitude : null,
         citizenId: user_id ? `USR_${user_id}` : 'ANONYMOUS_CITIZEN'
       });
 
@@ -1382,7 +1353,7 @@ app.post('/api/complaints', (req, res) => {
         const insertHotspot = db.prepare(`
           INSERT INTO demand_hotspots (
             ward_id, center_lat, center_lng, radius, demand_count, unique_citizen_count,
-            dominant_category, intensity, recurrence, geographic_concentration, confidence, status, first_observed_at, last_observed_at
+            dominant_category, intensity, recurrence, geographic_concentration, cluster_strength, status, first_observed_at, last_observed_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const h of hotspots) {
@@ -1412,7 +1383,19 @@ app.post('/api/complaints', (req, res) => {
       updateHotspotsTx();
 
       const activeHotspots = db.prepare("SELECT * FROM demand_hotspots WHERE status = 'ACTIVE'").all();
-      matchedHotspot = activeHotspots.find(h => h.ward_id === normalized.wardId) || activeHotspots[0] || null;
+      matchedHotspot = null;
+      if (normalized.lat != null && normalized.lng != null) {
+        const getDistance = (lat1, lon1, lat2, lon2) => {
+          const R = 6371e3;
+          const p1 = lat1 * Math.PI / 180;
+          const p2 = lat2 * Math.PI / 180;
+          const dp = (lat2 - lat1) * Math.PI / 180;
+          const dl = (lon2 - lon1) * Math.PI / 180;
+          const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        };
+        matchedHotspot = activeHotspots.find(h => getDistance(h.center_lat, h.center_lng, normalized.lat, normalized.lng) <= 100) || null;
+      }
 
       if (user_id) {
         db.prepare('UPDATE users SET points = COALESCE(points, 0) + 15 WHERE id = ?').run(user_id);
@@ -1423,13 +1406,8 @@ app.post('/api/complaints', (req, res) => {
 
         db.prepare(`
           INSERT INTO notifications (user_id, title, message, type, group_type, is_read, created_at)
-          VALUES (?, ?, ?, 'info', 'community', 0, ?)
-        `).run(
-          user_id,
-          'Issue Registered Real-Time',
-          `Report #${newComplaint.id} logged in ${normalized.wardId}. Real-time planning hotspot dynamically recomputed (radius: 100m).`,
-          new Date().toISOString()
-        );
+          VALUES (?, ?, ?, 'REWARD', 'ACHIEVEMENT', 0, ?)
+        `).run(user_id, 'Points Earned!', `You earned 15 Civic Points for reporting an issue.`, new Date().toISOString());
       }
     } catch (normErr) {
       console.warn('Silent notice: demand normalization auto-trigger:', normErr.message);
@@ -1441,8 +1419,8 @@ app.post('/api/complaints', (req, res) => {
       hotspot: matchedHotspot,
       hotspotsCount,
       message: matchedHotspot 
-        ? `Issue reported! Automatically mapped to real-time demand hotspot in ${matchedHotspot.ward_id} (radius: 100m).` 
-        : `Issue reported! Normalized into development demand layers.`
+        ? `Issue reported and incorporated into a nearby demand hotspot.` 
+        : `Issue reported and normalized into the development demand layer. A hotspot is created only when enough nearby citizen demands accumulate.`
     });
   } catch (err) {
     console.error(err);

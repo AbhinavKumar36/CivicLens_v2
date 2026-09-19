@@ -104,9 +104,24 @@ export class ThemeHotspotEngine {
       }
     }
 
+    // Second-pass validation: ensure all members are strictly <= 100m from final centroid
+    const validatedClusters = [];
+    for (const cluster of clusters) {
+      const validItems = cluster.items.filter(d => getDistanceInMeters(cluster.centerLat, cluster.centerLng, d.lat, d.lng) <= 100);
+      if (validItems.length > 0) {
+        const totalLat = validItems.reduce((sum, item) => sum + parseFloat(item.lat), 0);
+        const totalLng = validItems.reduce((sum, item) => sum + parseFloat(item.lng), 0);
+        validatedClusters.push({
+          centerLat: totalLat / validItems.length,
+          centerLng: totalLng / validItems.length,
+          items: validItems
+        });
+      }
+    }
+
     const hotspots = [];
 
-    for (const cluster of clusters) {
+    for (const cluster of validatedClusters) {
       const items = cluster.items;
       const count = items.length;
       const uniqueCitizens = new Set(items.map(i => i.citizen_id || i.id)).size;
@@ -140,6 +155,15 @@ export class ThemeHotspotEngine {
         ward = Object.keys(wardFreq).reduce((a, b) => wardFreq[a] > wardFreq[b] ? a : b);
       }
 
+      // Deterministic heuristic cluster strength
+      const citizenSupportScore = Math.min(1.0, uniqueCitizens / 10);
+      const demandDensityScore = Math.min(1.0, count / 20);
+      const recurrenceScore = recurrence === 'HIGH' ? 1.0 : (recurrence === 'MODERATE' ? 0.5 : 0.0);
+      const geographicConcentration = count >= 5 ? 'HIGH' : 'MEDIUM';
+      const spatialScore = geographicConcentration === 'HIGH' ? 1.0 : 0.5;
+      
+      const clusterStrength = Math.round((0.40 * citizenSupportScore + 0.30 * demandDensityScore + 0.20 * recurrenceScore + 0.10 * spatialScore) * 100) / 100;
+
       hotspots.push({
         id: hotspots.length + 1,
         wardId: ward,
@@ -151,8 +175,8 @@ export class ThemeHotspotEngine {
         dominantCategory,
         intensity,
         recurrence,
-        geographicConcentration: count >= 5 ? 'HIGH' : 'MEDIUM',
-        confidence: 0.91,
+        geographicConcentration,
+        clusterStrength,
         status: 'ACTIVE',
         firstObservedAt: firstObserved,
         lastObservedAt: lastObserved

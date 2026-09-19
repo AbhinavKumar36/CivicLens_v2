@@ -24,32 +24,18 @@ export class NormalizationEngine {
     if (!detectedWard) {
       if (lower.includes('bhouma nagar') || lower.includes('harish vihar') || lower.includes('ward 23') || lower.includes('23')) {
         detectedWard = 'Ward 23';
-        lat = 20.2785;
-        lng = 85.8324;
       } else if (lower.includes('rasulgarh') || lower.includes('ward 35') || lower.includes('35')) {
         detectedWard = 'Ward 35';
-        lat = 20.2961;
-        lng = 85.8712;
       } else if (lower.includes('saheed nagar') || lower.includes('ward 24') || lower.includes('24')) {
         detectedWard = 'Ward 24';
-        lat = 20.2882;
-        lng = 85.8501;
       } else if (lower.includes('nayapalli') || lower.includes('ward 42') || lower.includes('42')) {
         detectedWard = 'Ward 42';
-        lat = 20.3015;
-        lng = 85.8152;
       } else if (lower.includes('chandrasekharpur') || lower.includes('ward 12') || lower.includes('12')) {
         detectedWard = 'Ward 12';
-        lat = 20.3245;
-        lng = 85.8189;
       } else if (lower.includes('old town') || lower.includes('ward 58') || lower.includes('58')) {
         detectedWard = 'Ward 58';
-        lat = 20.2415;
-        lng = 85.8335;
       } else {
-        detectedWard = 'Ward 23';
-        lat = 20.2785;
-        lng = 85.8324;
+        detectedWard = 'Ward 23'; // Default ward fallback
       }
     }
 
@@ -181,8 +167,8 @@ export class NormalizationEngine {
       urgency,
       language,
       wardId: detectedWard,
-      lat: lat || 20.2785,
-      lng: lng || 85.8324,
+      lat: lat != null ? lat : null,
+      lng: lng != null ? lng : null,
       confidence,
       citizenId: input.citizenId || input.citizen_id || 'ANONYMOUS_CITIZEN',
       source: input.source || 'CITIZEN_REPORT',

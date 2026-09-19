@@ -490,7 +490,7 @@ export function MapDashboard() {
 
                   <div className="pt-2 border-t border-foreground/5 flex justify-between text-[11px] text-on-surface-variant">
                     <span>Recurrence: <strong className="text-foreground">{selectedEntity.data.recurrence}</strong></span>
-                    <span>Confidence: <strong className="text-foreground">{(selectedEntity.data.confidence * 100).toFixed(0)}%</strong></span>
+                    <span>Cluster Strength: <strong className="text-foreground">{(selectedEntity.data.clusterStrength * 100).toFixed(0)}%</strong></span>
                   </div>
 
                   <Button 
