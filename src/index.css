@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;      /* #f8fafc */
+    --foreground: 222 47% 11%;      /* #0f172a */
+    --card: 0 0% 100%;              /* #ffffff */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Core Brand mapped to Light */
+    --primary: 239 65% 56%;         /* #494bd6 - deeper indigo */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 271 70% 45%;       /* #6f22c1 - deeper purple */
+    --secondary-foreground: 210 40% 98%;
+    --tertiary: 335 78% 45%;        /* #c81966 - deeper pink */
+    --tertiary-foreground: 210 40% 98%;
+    
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 239 65% 56%;
+    --radius: 0.5rem;
+
+    /* Custom CivicLens Variables for Light Mode */
+    --up-surface-container: #f1f5f9;
+    --up-surface: #ffffff;
+    --up-on-surface: #0f172a;
+    --up-surface-variant: #e2e8f0;
+    --up-on-surface-variant: #475569;
+    --up-primary-container: #e0e7ff;
+    --up-on-primary-container: #3730a3;
+    --up-error-container: #fee2e2;
+    --up-error: #ef4444;
+    --up-outline: #64748b;
+    --up-on-primary: #1e1b4b;
+    --up-surface-container-lowest: #f8fafc;
+    --up-surface-container-highest: #e2e8f0;
+  }
+  
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 226 100% 92%;
+    --card: 222 47% 11%;
+    --card-foreground: 226 100% 92%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 226 100% 92%;
+    
+    /* Core Brand mapped to Dark */
+    --primary: 239 100% 88%;        /* #c0c1ff */
+    --primary-foreground: 244 100% 36%;
+    --secondary: 271 100% 86%;      /* #ddb7ff */
+    --secondary-foreground: 272 100% 16%;
+    --tertiary: 335 100% 84%;       /* #ffb0cd */
+    --tertiary-foreground: 335 100% 20%;
+
+    --muted: 226 23% 22%;
+    --muted-foreground: 249 22% 81%;
+    --accent: 226 23% 22%;
+    --accent-foreground: 226 100% 92%;
+    
+    --destructive: 0 100% 83%;
+    --destructive-foreground: 359 100% 21%;
+    
+    --border: 240 10% 31%;
+    --input: 240 10% 31%;
+    --ring: 239 100% 88%;
+
+    /* Custom CivicLens Variables for Dark Mode */
+    --up-surface-container: #171f33;
+    --up-surface: #0b1326;
+    --up-on-surface: #dae2fd;
+    --up-surface-variant: #2d3449;
+    --up-on-surface-variant: #c7c4d7;
+    --up-primary-container: #8083ff;
+    --up-on-primary-container: #0d0096;
+    --up-error-container: #93000a;
+    --up-error: #ffb4ab;
+    --up-outline: #908fa0;
+    --up-on-primary: #1000a9;
+    --up-surface-container-lowest: #060e20;
+    --up-surface-container-highest: #2d3449;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body-md overflow-x-hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background-color: color-mix(in srgb, var(--up-surface) 60%, transparent);
+    @apply backdrop-blur-xl border border-foreground/10;
+  }
+  .glass-panel-hover:hover {
+    background-color: color-mix(in srgb, var(--up-surface) 80%, transparent);
+    @apply border-[rgba(192,193,255,0.3)];
+  }
+  .orb-glow {
+    box-shadow: 0px 0px 40px rgba(192, 193, 255, 0.4);
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .ai-orb {
+    background: radial-gradient(circle at 30% 30%, #c0c1ff, #6f00be);
+    box-shadow: 0 0 20px rgba(192, 193, 255, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.3);
+    animation: pulse 4s ease-in-out infinite;
+  }
+}
+
+/* Custom Scrollbar for non-hidden cases */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+@keyframes breathing {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; filter: brightness(1.2); }
+}
+.animate-breathing {
+  animation: breathing 4s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------
+   Accessibility Overrides (WCAG AA Compliance)
+--------------------------------------------------------- */
+
+/* High Contrast Mode: Maximize readability ratios */
+html.high-contrast {
+  --up-surface: #ffffff;
+  --up-on-surface: #000000;
+  --up-surface-variant: #eeeeee;
+  --up-on-surface-variant: #111111;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --border: 0 0% 0%;
+}
+
+html.high-contrast.dark {
+  --up-surface: #000000;
+  --up-on-surface: #ffffff;
+  --up-surface-variant: #111111;
+  --up-on-surface-variant: #eeeeee;
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --border: 0 0% 100%;
+}
+
+/* Large Text Mode: Dynamically scale base font */
+html.large-text {
+  font-size: 115%;
+}
+html.large-text .material-symbols-outlined {
+  transform: scale(1.15);
+}
+
+/* Reduced Motion Mode: Kill all non-essential animations */
+html.reduced-motion *, html.reduced-motion ::before, html.reduced-motion ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Global Focus Rings (Keyboard Navigation) */
+*:focus-visible {
+  outline: 2px solid theme('colors.primary.DEFAULT');
+  outline-offset: 4px;
+  border-radius: 4px;
+}

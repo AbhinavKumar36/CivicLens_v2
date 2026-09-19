@@ -1,0 +1,383 @@
+export const MOCK_USER = {
+  id: 1,
+  name: "Priya Sharma",
+  role: "citizen",
+  avatar_url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80",
+  tier: "Standard Tier"
+};
+
+export const MOCK_REPORTS = [
+  {
+    "id": 1,
+    "category": "safety",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Safety hazard near park 1",
+    "status": "Resolved",
+    "department": "Mumbai Traffic Police",
+    "estimated_resolution_time": "38 Hours",
+    "worker_id": 5,
+    "created_at": "2026-06-30T06:39:50.893Z"
+  },
+  {
+    "id": 2,
+    "category": "sanitation",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Overflowing trash bins at sector 2",
+    "status": "Closed",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "8 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-05T09:04:11.578Z"
+  },
+  {
+    "id": 3,
+    "category": "water",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Water leak at building 3",
+    "status": "In Progress",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "33 Hours",
+    "worker_id": 6,
+    "created_at": "2026-07-01T12:02:27.751Z"
+  },
+  {
+    "id": 4,
+    "category": "infrastructure",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Pothole reported on street 4",
+    "status": "In Progress",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "18 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-03T08:08:25.874Z"
+  },
+  {
+    "id": 5,
+    "category": "environmental",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Excessive noise/pollution in zone 5",
+    "status": "In Progress",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "12 Hours",
+    "worker_id": null,
+    "created_at": "2026-06-29T21:08:54.290Z"
+  },
+  {
+    "id": 6,
+    "category": "sanitation",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Overflowing trash bins at sector 6",
+    "status": "Closed",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "36 Hours",
+    "worker_id": 5,
+    "created_at": "2026-07-05T11:23:02.997Z"
+  },
+  {
+    "id": 7,
+    "category": "environmental",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Excessive noise/pollution in zone 7",
+    "status": "Closed",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "2 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-08T12:56:35.492Z"
+  },
+  {
+    "id": 8,
+    "category": "safety",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Safety hazard near park 8",
+    "status": "Closed",
+    "department": "Mumbai Traffic Police",
+    "estimated_resolution_time": "47 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-01T20:14:38.840Z"
+  },
+  {
+    "id": 9,
+    "category": "sanitation",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Overflowing trash bins at sector 9",
+    "status": "In Progress",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "33 Hours",
+    "worker_id": 4,
+    "created_at": "2026-07-07T02:15:37.246Z"
+  },
+  {
+    "id": 10,
+    "category": "water",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Water leak at building 10",
+    "status": "In Progress",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "4 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-08T05:20:17.572Z"
+  },
+  {
+    "id": 11,
+    "category": "water",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Water leak at building 11",
+    "status": "In Progress",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "6 Hours",
+    "worker_id": 4,
+    "created_at": "2026-07-02T05:16:46.804Z"
+  },
+  {
+    "id": 12,
+    "category": "safety",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Safety hazard near park 12",
+    "status": "Pending",
+    "department": "Mumbai Traffic Police",
+    "estimated_resolution_time": "33 Hours",
+    "worker_id": 3,
+    "created_at": "2026-07-06T13:43:28.792Z"
+  },
+  {
+    "id": 13,
+    "category": "power",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Streetlight out on avenue 13",
+    "status": "In Progress",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "42 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-06T07:04:00.926Z"
+  },
+  {
+    "id": 14,
+    "category": "water",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Water leak at building 14",
+    "status": "Closed",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "23 Hours",
+    "worker_id": 1,
+    "created_at": "2026-06-30T10:13:22.965Z"
+  },
+  {
+    "id": 15,
+    "category": "infrastructure",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Pothole reported on street 15",
+    "status": "Closed",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "30 Hours",
+    "worker_id": 5,
+    "created_at": "2026-07-08T04:23:08.430Z"
+  },
+  {
+    "id": 16,
+    "category": "infrastructure",
+    "priority": "High",
+    "severity": "High",
+    "summary": "Pothole reported on street 16",
+    "status": "In Progress",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "26 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-01T03:48:02.921Z"
+  },
+  {
+    "id": 17,
+    "category": "power",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Streetlight out on avenue 17",
+    "status": "Closed",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "30 Hours",
+    "worker_id": 2,
+    "created_at": "2026-07-02T10:09:15.492Z"
+  },
+  {
+    "id": 18,
+    "category": "infrastructure",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Pothole reported on street 18",
+    "status": "In Progress",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "37 Hours",
+    "worker_id": 3,
+    "created_at": "2026-06-30T06:26:22.432Z"
+  },
+  {
+    "id": 19,
+    "category": "infrastructure",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Pothole reported on street 19",
+    "status": "In Progress",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "6 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-09T02:38:38.080Z"
+  },
+  {
+    "id": 20,
+    "category": "power",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Streetlight out on avenue 20",
+    "status": "Closed",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "36 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-02T14:43:36.585Z"
+  },
+  {
+    "id": 21,
+    "category": "infrastructure",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Pothole reported on street 21",
+    "status": "Closed",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "25 Hours",
+    "worker_id": 1,
+    "created_at": "2026-07-06T22:13:32.126Z"
+  },
+  {
+    "id": 22,
+    "category": "environmental",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Excessive noise/pollution in zone 22",
+    "status": "Closed",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "28 Hours",
+    "worker_id": 6,
+    "created_at": "2026-07-04T10:37:13.712Z"
+  },
+  {
+    "id": 23,
+    "category": "safety",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Safety hazard near park 23",
+    "status": "In Progress",
+    "department": "Mumbai Traffic Police",
+    "estimated_resolution_time": "9 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-08T08:34:50.834Z"
+  },
+  {
+    "id": 24,
+    "category": "water",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Water leak at building 24",
+    "status": "Resolved",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "10 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-01T23:02:01.476Z"
+  },
+  {
+    "id": 25,
+    "category": "safety",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Safety hazard near park 25",
+    "status": "In Progress",
+    "department": "Mumbai Traffic Police",
+    "estimated_resolution_time": "8 Hours",
+    "worker_id": null,
+    "created_at": "2026-06-30T17:58:48.936Z"
+  },
+  {
+    "id": 26,
+    "category": "water",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Water leak at building 26",
+    "status": "Pending",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "24 Hours",
+    "worker_id": 3,
+    "created_at": "2026-07-06T20:42:47.409Z"
+  },
+  {
+    "id": 27,
+    "category": "sanitation",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Overflowing trash bins at sector 27",
+    "status": "Pending",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "49 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-09T03:32:47.164Z"
+  },
+  {
+    "id": 28,
+    "category": "power",
+    "priority": "Critical",
+    "severity": "Critical",
+    "summary": "Streetlight out on avenue 28",
+    "status": "In Progress",
+    "department": "BMC Water Supply",
+    "estimated_resolution_time": "46 Hours",
+    "worker_id": null,
+    "created_at": "2026-07-08T16:12:48.503Z"
+  },
+  {
+    "id": 29,
+    "category": "infrastructure",
+    "priority": "Medium",
+    "severity": "Medium",
+    "summary": "Pothole reported on street 29",
+    "status": "Closed",
+    "department": "BMC Public Works",
+    "estimated_resolution_time": "30 Hours",
+    "worker_id": 5,
+    "created_at": "2026-07-07T03:04:02.458Z"
+  },
+  {
+    "id": 30,
+    "category": "environmental",
+    "priority": "Low",
+    "severity": "Low",
+    "summary": "Excessive noise/pollution in zone 30",
+    "status": "Resolved",
+    "department": "BMC Solid Waste Management",
+    "estimated_resolution_time": "4 Hours",
+    "worker_id": 4,
+    "created_at": "2026-07-02T05:16:16.384Z"
+  }
+];
+
+export const MOCK_METRICS = [
+  { id: 1, type: "weather", value: "72°F", label: "Weather", icon: "cloud" },
+  { id: 2, type: "aqi", value: "42", label: "AQI", icon: "air" },
+  { id: 3, type: "transit", value: "98%", label: "Transit", icon: "directions_transit" },
+  { id: 4, type: "traffic", value: "Light", label: "Traffic", icon: "traffic" }
+];
+
+export const MOCK_RECOMMENDATIONS = [
+  { id: 1, title: "Parking Permit Expiring", type: "alert", icon: "auto_awesome", color: "primary", description: "Your District 4 permit expires in 3 days. Renew now to avoid auto-citations.", action: "Renew Instantly" },
+  { id: 2, title: "Community Jazz Night", type: "event", icon: "event", color: "primary", description: "Starts in 2 hours • Central Plaza" },
+  { id: 3, title: "Service Reminder", type: "reminder", icon: "water_drop", color: "secondary", description: "Water maintenance tomorrow, 9AM" }
+];
