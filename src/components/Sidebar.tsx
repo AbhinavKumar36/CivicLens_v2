@@ -1,5 +1,5 @@
 import React from "react"
-import { NavLink } from "react-router-dom"
+import { NavLink, Link } from "react-router-dom"
 import { cn } from "@/utils/utils"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -43,12 +43,14 @@ export function Sidebar() {
 
   return (
     <aside className="h-screen w-sidebar-width fixed left-0 top-0 bg-surface/60 backdrop-blur-xl border-r border-foreground/10 shadow-md flex flex-col py-base z-50 hidden md:flex overflow-y-auto select-none">
-      <div className="px-6 mb-12 flex items-center gap-3" role="banner">
-        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-contain bg-white p-0.5" />
-        <div className="flex flex-col gap-0.5">
-          <span className="font-headline-md text-lg font-bold text-on-surface leading-none">CivicLens</span>
-          <span className="font-label-sm text-[9px] text-primary tracking-widest uppercase leading-none">Smart City AI</span>
-        </div>
+      <div className="p-6 pb-2">
+        <Link to="/" className="flex items-center gap-3">
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-10 h-10 rounded-xl object-contain bg-white p-0.5" />
+          <div className="flex flex-col">
+            <span className="font-headline-sm text-headline-sm tracking-tight text-white leading-none mb-1">CIVICLENS</span>
+            <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold leading-none">Operating System</span>
+          </div>
+        </Link>
       </div>
       
       <div className="px-4 mb-4">

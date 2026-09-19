@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Headline, BodyText, Label } from "@/components/atoms/Typography";
@@ -189,9 +189,9 @@ export function Login() {
         className="max-w-4xl w-full z-10 space-y-10"
       >
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl overflow-hidden mx-auto shadow-[0_0_30px_rgba(192,193,255,0.2)] bg-white flex items-center justify-center p-1">
+          <Link to="/" className="w-16 h-16 rounded-3xl overflow-hidden mx-auto shadow-[0_0_30px_rgba(192,193,255,0.2)] bg-white flex items-center justify-center p-1 hover:scale-105 transition-transform">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-full h-full object-contain" />
-          </div>
+          </Link>
           <Headline level={1} className="text-foreground">Select Your Profile</Headline>
           <BodyText className="text-on-surface-variant max-w-lg mx-auto">
             Welcome to the CivicLens AI Operating System. Sign in with a verified profile or register as a citizen with e-Aadhaar KYC.

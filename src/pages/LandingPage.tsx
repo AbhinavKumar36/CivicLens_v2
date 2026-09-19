@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { Canvas } from '@react-three/fiber'
 import { CivicPipeline3D } from '../components/3d/CivicPipeline3D'
@@ -26,10 +26,10 @@ export function LandingPage() {
         
         {/* Navigation */}
         <header className="fixed top-0 w-full h-20 px-8 flex justify-between items-center z-50 bg-[#070b14]/80 backdrop-blur-xl border-b border-white/5">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CivicLens Logo" className="w-8 h-8 rounded-lg object-contain bg-white/10 p-1 border border-white/10" />
             <span className="font-bold text-lg tracking-tight text-white">CIVICLENS</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-6 text-sm font-medium">
             <a href="#problem" className="text-white/60 hover:text-white transition-colors">The Problem</a>
             <a href="#pipeline" className="text-white/60 hover:text-white transition-colors">How it works</a>
@@ -119,12 +119,12 @@ export function LandingPage() {
               <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 text-sm font-mono tracking-widest text-white/40 uppercase">
                 <div className="flex flex-col items-center gap-2 line-through decoration-red-500/50">
                   <span className="text-xs text-white/30 mb-2">Traditional</span>
-                  <div className="flex items-center gap-2">Report <span className="material-symbols-outlined text-xs">arrow_forward</span> Assign <span className="material-symbols-outlined text-xs">arrow_forward</span> Resolve</div>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">Report <span className="material-symbols-outlined text-xs">arrow_forward</span> Route <span className="material-symbols-outlined text-xs">arrow_forward</span> Resolve</div>
                 </div>
                 <div className="hidden md:block w-[1px] h-12 bg-white/10"></div>
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-xs text-[#c0c1ff] mb-2">CivicLens</span>
-                  <div className="flex items-center gap-2 text-white/80">Listen <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Understand <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Decide</div>
+                  <div className="flex items-center gap-2 flex-wrap justify-center text-white/80">Voice <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Aggregate <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Map <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Validate <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Prioritize <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Optimize <span className="material-symbols-outlined text-xs text-[#494bd6]">arrow_forward</span> Decide</div>
                 </div>
               </div>
             </div>
@@ -202,17 +202,16 @@ export function LandingPage() {
         <section className="py-40 px-6 relative z-10 text-center">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center opacity-5 grayscale pointer-events-none"></div>
           <div className="max-w-4xl mx-auto relative z-10">
-            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-white mb-6">
-              THE CITY SPEAKS. <br/>
-              <span className="text-[#494bd6]">CIVICLENS HELPS</span> <br/>
-              DECISION-MAKERS LISTEN.
+            <h2 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-white mb-6 leading-tight">
+              Turn citizen voices<br/>
+              <span className="text-[#494bd6]">into development intelligence.</span>
             </h2>
             <div className="mt-12">
               <button 
-                onClick={() => navigate("/operator/login")}
+                onClick={() => navigate("/dashboard")}
                 className="px-10 py-5 rounded-2xl bg-white text-black text-lg font-bold hover:bg-gray-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)]"
               >
-                Access Planning Studio
+                Enter CivicLens
               </button>
             </div>
           </div>

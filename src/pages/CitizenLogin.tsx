@@ -119,10 +119,10 @@ export function CitizenLogin() {
       <div className="w-full max-w-7xl mx-auto flex z-10">
         {/* Left Side */}
         <div className="hidden lg:flex flex-col justify-center w-1/2 p-12 relative">
-          <div className="absolute top-12 left-12 flex items-center gap-3">
+          <Link to="/" className="absolute top-12 left-12 flex items-center gap-3">
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" className="w-8 h-8 rounded-lg bg-white/10 p-1 border border-white/10" />
             <span className="font-bold text-lg tracking-tight">CIVICLENS</span>
-          </div>
+          </Link>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
             <h1 className="text-5xl font-bold tracking-tight mb-6">Your voice shapes the city.</h1>
             <p className="text-white/50 text-lg max-w-md leading-relaxed">

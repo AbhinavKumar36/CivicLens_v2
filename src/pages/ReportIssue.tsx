@@ -13,6 +13,7 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { VoiceReportForm } from "@/components/organisms/VoiceReportForm"
+import { imageAuthenticityService } from "@/services/imageAuthenticityService"
 
 interface ReportData {
   category: string
@@ -119,6 +120,8 @@ export function ReportIssue() {
       const parsed: ReportData = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
       
       setReportData({ ...parsed, image: imagePreview })
+      setEditedSummary(parsed.summary)
+      setIsEditedByCitizen(false)
       addNotification({
         title: "Image Diagnostic Complete",
         message: `Gemini identified "${parsed.summary}" classified under ${parsed.category}.`,
