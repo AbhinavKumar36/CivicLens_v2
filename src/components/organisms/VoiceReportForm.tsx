@@ -1,206 +1,258 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassPanel } from "@/components/ui/GlassPanel";
-import { Headline, BodyText } from "@/components/atoms/Typography";
-import { useOfflineWhisper } from "@/hooks/useOfflineWhisper";
+import { Headline, BodyText, Label } from "@/components/atoms/Typography";
+import { useGeminiVoice } from "@/hooks/useGeminiVoice";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { api } from "@/services/api";
+import { useTranslation } from 'react-i18next';
+import { cn } from "@/utils/utils";
 
-export function VoiceReportForm({ onExtractedData, isAnonymous, lat, lng }: any) {
+const LANGUAGES = [
+  { code: 'en', label: 'EN', name: 'English', flag: '🇬🇧' },
+  { code: 'hi', label: 'HI', name: 'Hindi',   flag: '🇮🇳' },
+  { code: 'ta', label: 'TA', name: 'Tamil',   flag: '🇮🇳' },
+  { code: 'or', label: 'OR', name: 'Odia',    flag: '🇮🇳' },
+  { code: 'bn', label: 'BN', name: 'Bengali', flag: '🇮🇳' },
+];
+
+export function VoiceReportForm({ onExtractedData, lat, lng }: any) {
   const { addNotification } = useNotifications();
-  const { loadModel, isReady, isDownloading, progress, transcribe, transcript, setTranscript } = useOfflineWhisper();
-  
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const { i18n } = useTranslation();
+  const { isRecording, isTranscribing, transcript, error, startRecording, stopAndTranscribe, clearTranscript } = useGeminiVoice();
 
+  const [selectedLang, setSelectedLang] = useState(
+    LANGUAGES.find(l => l.code === i18n.language) ?? LANGUAGES[0]
+  );
+
+  // Sync if app language changes from outside
   useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, []);
+    const match = LANGUAGES.find(l => l.code === i18n.language);
+    if (match) setSelectedLang(match);
+  }, [i18n.language]);
 
-  const handleStartRecording = async () => {
-    if (!isReady) {
-      await loadModel();
-      return; // return and let them click again once ready
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      mediaRecorder.current = new MediaRecorder(stream);
-      audioChunks.current = [];
-
-      mediaRecorder.current.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.current.push(e.data);
-      };
-
-      mediaRecorder.current.onstop = async () => {
-        setIsProcessing(true);
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        
-        addNotification({ title: "Processing Audio", message: "Running offline Whisper transcription...", type: "info" });
-        const text = await transcribe(audioBlob);
-        
-        if (text) {
-          processTranscript(text);
-        } else {
-          addNotification({ title: "Transcription Failed", message: "Could not transcribe audio.", type: "error" });
-          setIsProcessing(false);
-        }
-        
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(t => t.stop());
-        }
-      };
-
-      mediaRecorder.current.start();
-      setIsRecording(true);
-    } catch (e) {
-      console.error(e);
-      addNotification({ title: "Microphone Error", message: "Could not access microphone.", type: "error" });
-    }
+  const handleLangChange = (lang: typeof LANGUAGES[0]) => {
+    setSelectedLang(lang);
+    i18n.changeLanguage(lang.code);
   };
 
-  const handleStopRecording = () => {
-    if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
-      setIsRecording(false);
-    }
-  };
+  const handleMicClick = async () => {
+    if (isTranscribing) return;
 
-  const processTranscript = async (text: string) => {
-    try {
-      const lowerText = text.toLowerCase();
-      const isEmergency = lowerText.includes("fire") || lowerText.includes("accident") || lowerText.includes("emergency");
-      
-      let category = "infrastructure";
-      if (lowerText.includes("fire")) category = "safety";
-      if (lowerText.includes("accident")) category = "safety";
-      if (lowerText.includes("water")) category = "water";
-      if (lowerText.includes("garbage")) category = "sanitation";
+    if (isRecording) {
+      // Stop → send to Gemini
+      await stopAndTranscribe(
+        selectedLang.name,
+        (result) => {
+          // Emergency detection
+          if (result.isEmergency) {
+            addNotification({
+              title: "🚨 SOS Triggered",
+              message: "Emergency keyword detected! Alerting operators.",
+              type: "error",
+              group: "emergency"
+            });
+            fetch('http://localhost:3000/api/emergency/sos', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: result.category === "safety" ? "Accident" : "Emergency",
+                location: lat && lng ? `${lat}, ${lng}` : "Unknown",
+                severity: "Critical"
+              })
+            }).catch(console.error);
+          }
 
-      const priority = isEmergency ? "Critical" : "Medium";
-      const severity = isEmergency ? "Critical" : "Medium";
-      
-      const reportData = {
-        summary: text,
-        category,
-        priority,
-        severity,
-        department: category === "safety" ? "Public Safety" : "Public Works",
-        estimated_resolution_time: isEmergency ? "1 Hour" : "48 Hours"
-      };
-
-      if (isEmergency) {
-        addNotification({
-          title: "SOS Triggered",
-          message: "Crucial keyword detected! Alerting operators and nearby workers.",
-          type: "error",
-          group: "emergency"
-        });
-        
-        try {
-          await fetch('http://localhost:3000/api/emergency/sos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              type: lowerText.includes("fire") ? "Fire" : "Accident", 
-              location: `${lat}, ${lng} (${text})`,
-              severity: "Critical"
-            })
+          addNotification({
+            title: "✅ Voice Report Ready",
+            message: `Transcribed in ${selectedLang.name} — form pre-filled by Gemini.`,
+            type: "success"
           });
-        } catch (e) {
-          console.error("SOS trigger failed", e);
-        }
-      }
 
-      onExtractedData(reportData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessing(false);
+          onExtractedData({
+            summary: result.transcript,
+            category: result.category,
+            priority: result.priority,
+            severity: result.severity,
+            department: result.department,
+            estimated_resolution_time: result.estimatedResolution,
+            language: selectedLang.name,
+          });
+        },
+        (errMsg) => {
+          addNotification({ title: "Transcription Failed", message: errMsg, type: "error" });
+        }
+      );
+    } else {
+      // Start recording
+      const ok = await startRecording();
+      if (ok) {
+        addNotification({
+          title: "🎙️ Recording",
+          message: `Speak in ${selectedLang.name}. Tap the mic again when done.`,
+          type: "info"
+        });
+      }
     }
   };
+
+  const micState = isTranscribing ? "processing" : isRecording ? "recording" : "idle";
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <Headline level={4} className="mb-2">Offline Voice Report</Headline>
+
+      {/* Header */}
+      <div className="text-center space-y-1.5">
+        <Headline level={4}>Voice Report</Headline>
         <BodyText className="text-on-surface-variant text-sm">
-          Speak your issue. Our on-device AI will transcribe and categorize it locally for complete privacy. Mention crucial words like "fire" or "accident" to trigger emergency routing.
+          Speak in your language — Gemini AI transcribes and categorises instantly.
         </BodyText>
+        {/* Gemini badge */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary uppercase tracking-widest">
+          <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+          Powered by Gemini
+        </div>
       </div>
 
-      {!isReady && !isDownloading && (
-        <div className="flex justify-center mt-6">
-          <button 
-            onClick={loadModel}
-            className="px-6 py-3 rounded-full bg-primary/20 text-primary font-bold border border-primary/30 hover:bg-primary/30 transition-all flex items-center gap-2"
+      {/* Language Selector */}
+      <div className="space-y-2">
+        <Label className="text-[10px] uppercase tracking-widest text-on-surface-variant block text-center">
+          Speaking Language
+        </Label>
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {LANGUAGES.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => handleLangChange(lang)}
+              disabled={isRecording || isTranscribing}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all duration-200",
+                selectedLang.code === lang.code
+                  ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/30 scale-105"
+                  : "bg-surface-container/50 text-on-surface-variant border-foreground/10 hover:border-primary/40 hover:text-primary hover:bg-primary/5",
+                (isRecording || isTranscribing) && "opacity-40 cursor-not-allowed"
+              )}
+            >
+              <span className="text-base leading-none">{lang.flag}</span>
+              <span className="uppercase tracking-wider">{lang.label}</span>
+            </button>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={selectedLang.code}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="text-center text-[11px] text-on-surface-variant"
           >
-            <span className="material-symbols-outlined">download</span>
-            Load Whisper Model (80MB)
-          </button>
-        </div>
-      )}
+            Gemini will transcribe your voice in{" "}
+            <strong className="text-primary">{selectedLang.name}</strong>
+          </motion.p>
+        </AnimatePresence>
+      </div>
 
-      {isDownloading && (
-        <div className="bg-surface-container/50 p-6 rounded-2xl border border-foreground/10 text-center">
-          <span className="material-symbols-outlined animate-spin text-3xl text-primary mb-3">sync</span>
-          <h3 className="font-bold mb-2">Downloading Whisper AI</h3>
-          <div className="w-full bg-foreground/10 h-2 rounded-full overflow-hidden">
-            <div className="bg-primary h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-          </div>
-          <p className="text-sm text-on-surface-variant mt-2">{progress}% completed</p>
-        </div>
-      )}
-
-      {isReady && (
-        <div className="flex flex-col items-center justify-center space-y-6 py-4">
+      {/* Mic Button */}
+      <div className="flex flex-col items-center justify-center space-y-4 py-2">
+        <div className="relative">
+          {/* Ripple rings while recording */}
+          {isRecording && (
+            <>
+              <span className="absolute inset-0 rounded-full bg-error/25 animate-ping" style={{ animationDuration: '1.2s' }} />
+              <span className="absolute inset-[-8px] rounded-full bg-error/10 animate-ping" style={{ animationDuration: '1.8s', animationDelay: '0.3s' }} />
+            </>
+          )}
+          {/* Spinning ring while Gemini processes */}
+          {isTranscribing && (
+            <span className="absolute inset-[-6px] rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
+          )}
           <button
-            onClick={isRecording ? handleStopRecording : handleStartRecording}
-            disabled={isProcessing}
-            className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all ${
-              isRecording 
-                ? 'bg-error text-white scale-110 shadow-error/50 animate-pulse' 
-                : isProcessing
-                ? 'bg-foreground/10 text-on-surface-variant'
-                : 'bg-primary text-on-primary shadow-primary/50 hover:scale-105'
-            }`}
+            onClick={handleMicClick}
+            disabled={isTranscribing}
+            className={cn(
+              "relative w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-200 select-none",
+              micState === "recording"
+                ? "bg-error text-white scale-110 shadow-error/40"
+                : micState === "processing"
+                ? "bg-surface-container text-on-surface-variant cursor-not-allowed"
+                : "bg-primary text-on-primary shadow-primary/40 hover:scale-105 active:scale-95"
+            )}
           >
-            <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {isRecording ? "stop" : isProcessing ? "hourglass_empty" : "mic"}
+            <span
+              className="material-symbols-outlined text-4xl"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              {micState === "recording" ? "stop" : micState === "processing" ? "hourglass_empty" : "mic"}
             </span>
           </button>
-          
-          <div className="text-center h-12">
-            <AnimatePresence mode="wait">
-              {isRecording && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-error font-bold tracking-widest uppercase">
-                  Recording...
-                </motion.p>
-              )}
-              {isProcessing && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-primary font-bold animate-pulse">
-                  Transcribing & Categorizing...
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {transcript && (
-            <GlassPanel className="w-full p-4 mt-4 bg-surface-container/30">
-              <Label className="text-xs text-on-surface-variant uppercase tracking-wider mb-2 block">Transcription</Label>
-              <p className="text-on-surface italic">"{transcript}"</p>
-            </GlassPanel>
-          )}
         </div>
-      )}
+
+        {/* Status line */}
+        <div className="text-center h-10 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {micState === "recording" && (
+              <motion.div key="rec" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-error animate-pulse block" />
+                <span className="text-error font-bold tracking-widest uppercase text-sm">
+                  Recording in {selectedLang.name}...
+                </span>
+              </motion.div>
+            )}
+            {micState === "processing" && (
+              <motion.div key="proc" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-base animate-spin">auto_awesome</span>
+                <span className="text-primary font-bold text-sm">Gemini is transcribing...</span>
+              </motion.div>
+            )}
+            {micState === "idle" && !error && (
+              <motion.p key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-on-surface-variant">
+                Tap the mic to start · tap again to stop &amp; transcribe
+              </motion.p>
+            )}
+            {micState === "idle" && error && (
+              <motion.p key="err" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-error text-center max-w-xs">
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Transcript box */}
+        <AnimatePresence>
+          {transcript && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="w-full"
+            >
+              <GlassPanel className="w-full p-4 bg-surface-container/30 border border-primary/20 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-on-surface-variant uppercase tracking-widest">
+                    Transcription · {selectedLang.name}
+                  </Label>
+                  <button
+                    onClick={clearTranscript}
+                    className="text-on-surface-variant hover:text-error transition-colors"
+                    title="Clear"
+                  >
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
+                </div>
+                <p className="text-on-surface italic text-sm leading-relaxed">"{transcript}"</p>
+                <p className="text-[10px] text-primary/70 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                  Form fields pre-filled by Gemini AI
+                </p>
+              </GlassPanel>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Footer tip */}
+      <p className="text-center text-[10px] text-on-surface-variant opacity-50">
+        Audio is sent to Google Gemini for transcription. Not stored locally.
+      </p>
     </div>
   );
 }

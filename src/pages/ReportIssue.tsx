@@ -152,21 +152,24 @@ export function ReportIssue() {
     if (!reportData) return
     setIsSubmitting(true)
     try {
-      let lat = userLat || 20.2961;
-      let lng = userLng || 85.8245;
+      let lat = userLat || null;
+      let lng = userLng || null;
       const lower = (reportData.summary || "").toLowerCase();
-      if (lower.includes("bhouma") || lower.includes("unit 4") || lower.includes("unit-4")) {
-        lat = 20.2785; lng = 85.8324;
-      } else if (lower.includes("saheed")) {
-        lat = 20.2882; lng = 85.8501;
-      } else if (lower.includes("rasulgarh")) {
-        lat = 20.2961; lng = 85.8712;
-      } else if (lower.includes("nayapalli") || lower.includes("irc")) {
-        lat = 20.3015; lng = 85.8152;
-      } else if (lower.includes("patia") || lower.includes("kiit")) {
-        lat = 20.3541; lng = 85.8175;
-      } else if (lower.includes("sum") || lower.includes("khandagiri") || lower.includes("nh 16") || lower.includes("nh-16")) {
-        lat = 20.2835; lng = 85.7697;
+      // Only apply specific keyword overrides if coords weren't explicitly provided, but avoid using a default fallback
+      if (!lat && !lng) {
+        if (lower.includes("bhouma") || lower.includes("unit 4") || lower.includes("unit-4")) {
+          lat = 20.2785; lng = 85.8324;
+        } else if (lower.includes("saheed")) {
+          lat = 20.2882; lng = 85.8501;
+        } else if (lower.includes("rasulgarh")) {
+          lat = 20.2961; lng = 85.8712;
+        } else if (lower.includes("nayapalli") || lower.includes("irc")) {
+          lat = 20.3015; lng = 85.8152;
+        } else if (lower.includes("patia") || lower.includes("kiit")) {
+          lat = 20.3541; lng = 85.8175;
+        } else if (lower.includes("sum") || lower.includes("khandagiri") || lower.includes("nh 16") || lower.includes("nh-16")) {
+          lat = 20.2835; lng = 85.7697;
+        }
       }
 
       const response = await api.createComplaint({

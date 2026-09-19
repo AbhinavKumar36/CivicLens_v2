@@ -3,6 +3,7 @@ import { pipeline, env } from '@xenova/transformers';
 
 // Disable local models loading to ensure it fetches from hub if not cached
 env.allowLocalModels = false;
+env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/';
 
 export function useOfflineWhisper() {
   const [isReady, setIsReady] = useState(false);
@@ -15,7 +16,8 @@ export function useOfflineWhisper() {
     if (transcriberRef.current) return;
     setIsDownloading(true);
     try {
-      transcriberRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
+      // Changed to 'whisper-tiny' to support multilingual transcription
+      transcriberRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
         progress_callback: (data: any) => {
           if (data.status === "progress" && data.loaded && data.total) {
             setProgress(Math.round((data.loaded / data.total) * 100));
@@ -32,7 +34,7 @@ export function useOfflineWhisper() {
     }
   }, []);
 
-  const transcribe = useCallback(async (audioBlob: Blob) => {
+  const transcribe = useCallback(async (audioBlob: Blob, language: string = 'english') => {
     if (!transcriberRef.current) return null;
     try {
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -43,12 +45,19 @@ export function useOfflineWhisper() {
       const result = await transcriberRef.current(audioData, {
         chunk_length_s: 30,
         stride_length_s: 5,
-        language: 'english',
+        language: language,
         task: 'transcribe',
       });
       
-      setTranscript(result.text);
-      return result.text;
+      let text = "";
+      if (Array.isArray(result)) {
+        text = result.map(r => r.text).join(" ");
+      } else {
+        text = result.text || "";
+      }
+      
+      setTranscript(text);
+      return text;
     } catch (e) {
       console.error("Transcription error:", e);
       return null;

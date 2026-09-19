@@ -165,7 +165,30 @@ Every indicator is classified as **SUPPORTING**, **CONTRADICTING**, **NEUTRAL**,
       } else if (text.includes("map") || text.includes("construction")) {
         reply = "You can view active municipal road closures, transit delays, and infrastructure incidents live on the **Map Dashboard** page.";
       } else {
-        reply = `I understand you are asking about "${messageText}". You can search for official permits and utility bills inside the **Services Hub**, view live city issues and demand hotspots on the **Map Dashboard**, or explore development planning allocations in the **Development Planning Studio**.`;
+        reply = `I am currently in **Offline Mock Mode** because no \`VITE_GEMINI_API_KEY\` was provided in the environment variables. 
+        
+I can only respond to a few hardcoded demo queries like:
+- "Why is drainage ranked highest?"
+- "Optimize my 5 crore portfolio"
+- "Show demand hotspots"
+- "Compare Ward 23 and Ward 31"`;
+      }
+
+      let lang = "EN";
+      const langMatch = messageText.match(/ISO code:\s*([a-zA-Z]{2})/i);
+      if (langMatch) lang = langMatch[1].toUpperCase();
+
+      if (lang !== "EN" && lang !== "EN-US") {
+        const translatedDisclaimers: Record<string, string> = {
+          "HI": "*(ध्यान दें: बिना API Key के Mock Mode में होने के कारण, उत्तर केवल अंग्रेजी में उपलब्ध हैं।)*",
+          "TA": "*(குறிப்பு: API விசை இல்லாததால் பதில்கள் ஆங்கிலத்தில் மட்டுமே கிடைக்கும்.)*",
+          "BN": "*(দ্রষ্টব্য: API কী না থাকায় উত্তর কেবল ইংরেজিতে উপলব্ধ।)*",
+          "OR": "*(ସୂଚନା: API Key ନଥିବାରୁ ଉତ୍ତର କେବଳ ଇଂରାଜୀରେ ଉପଲବ୍ଧ |)*"
+        };
+        const disclaimer = translatedDisclaimers[lang];
+        if (disclaimer) {
+          reply = disclaimer + "\n\n" + reply;
+        }
       }
 
       return {
@@ -202,9 +225,10 @@ class FallbackChatSession {
     this.systemInstruction = systemInstruction;
     this.mockSession = new MockChatSession(systemInstruction);
 
-    if (API_KEY && API_KEY !== "your_api_key_here") {
+    if (API_KEY && API_KEY.length > 20) {
       try {
-        const model35 = genAI.getGenerativeModel({ 
+        // Primary: Gemini 3.5 Flash
+        const model35 = genAI.getGenerativeModel({
           model: "gemini-3.5-flash",
           systemInstruction,
           safetySettings
@@ -214,7 +238,8 @@ class FallbackChatSession {
           generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
         });
 
-        const model25 = genAI.getGenerativeModel({ 
+        // Secondary fallback: Gemini 2.5 Flash
+        const model25 = genAI.getGenerativeModel({
           model: "gemini-2.5-flash",
           systemInstruction,
           safetySettings
@@ -223,11 +248,14 @@ class FallbackChatSession {
           history: [],
           generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
         });
+
+        console.log("[Gemini] Sessions initialized: gemini-3.5-flash → gemini-2.5-flash → mock");
       } catch (err) {
-        console.warn("Failed to initialize remote models, falling back to mock");
+        console.warn("[Gemini] Failed to initialize remote models, falling back to mock:", err);
         this.currentMode = "mock";
       }
     } else {
+      console.warn("[Gemini] No valid API key found — running in offline mock mode.");
       this.currentMode = "mock";
     }
   }
@@ -235,29 +263,29 @@ class FallbackChatSession {
   async sendMessage(messageText: string): Promise<any> {
     if (this.currentMode === "3.5" && this.session35) {
       try {
-        console.log("Attempting Gemini 3.5 Flash...");
+        console.log("[Gemini] Attempting gemini-3.5-flash...");
         const result = await this.session35.sendMessage(messageText);
         this.syncHistory();
         return result;
       } catch (error) {
-        console.warn("Gemini 3.5 Flash failed, falling back to 2.5 Flash...", error);
+        console.warn("[Gemini] gemini-3.5-flash failed, trying gemini-2.5-flash...", error);
         this.currentMode = "2.5";
       }
     }
 
     if (this.currentMode === "2.5" && this.session25) {
       try {
-        console.log("Attempting Gemini 2.5 Flash...");
+        console.log("[Gemini] Attempting gemini-2.5-flash...");
         const result = await this.session25.sendMessage(messageText);
         this.syncHistory();
         return result;
       } catch (error) {
-        console.warn("Gemini 2.5 Flash failed, falling back to Offline Mock...", error);
+        console.warn("[Gemini] gemini-2.5-flash failed, falling back to offline mock...", error);
         this.currentMode = "mock";
       }
     }
 
-    console.log("Using Offline Mock Fallback...");
+    console.log("[Gemini] Using offline mock fallback.");
     return this.mockSession.sendMessage(messageText);
   }
 
@@ -265,7 +293,7 @@ class FallbackChatSession {
     if (this.currentMode === "3.5" && this.session35) {
       let yieldedAny = false;
       try {
-        console.log("Attempting Gemini 3.5 Flash (Stream)...");
+        console.log("[Gemini] Attempting gemini-3.5-flash (stream)...");
         const result = await this.session35.sendMessageStream(messageText);
         for await (const chunk of result.stream) {
           let text = "";
@@ -282,39 +310,21 @@ class FallbackChatSession {
         this.syncHistory();
         return;
       } catch (error) {
-        console.warn("Gemini 3.5 Flash Stream failed, falling back to 2.5 Flash...", error);
+        console.warn("[Gemini] gemini-3.5-flash stream failed, trying gemini-2.5-flash...", error);
         this.currentMode = "2.5";
         if (yieldedAny) return;
       }
     }
 
     if ((this.currentMode === "2.5" || this.currentMode === "3.5") && this.session25) {
-      let yieldedAny = false;
-      try {
-        console.log("Attempting Gemini 2.5 Flash (Stream)...");
-        const result = await this.session25.sendMessageStream(messageText);
-        for await (const chunk of result.stream) {
-          let text = "";
-          try {
-            text = chunk.text();
-          } catch (e) {
-            text = chunk.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          }
-          if (text) {
-            yieldedAny = true;
-            yield { text: () => text };
-          }
-        }
-        this.syncHistory();
-        return;
-      } catch (error) {
-        console.warn("Gemini 2.5 Flash Stream failed, falling back to Offline Mock...", error);
-        this.currentMode = "mock";
-        if (yieldedAny) return;
-      }
+      console.log("[Gemini] Attempting gemini-2.5-flash (stream)...");
+      const success = yield* this._tryStream(this.session25, messageText, "gemini-2.5-flash");
+      if (success) { this.syncHistory(); return; }
+      console.warn("[Gemini] gemini-2.5-flash exhausted, using offline mock...");
+      this.currentMode = "mock";
     }
 
-    console.log("Using Offline Mock Fallback (Stream)...");
+    console.log("[Gemini] Using offline mock fallback (stream).");
     const stream = this.mockSession.sendMessageStream(messageText);
     for await (const chunk of stream) {
       yield chunk;

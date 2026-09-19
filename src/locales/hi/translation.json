@@ -1,0 +1,7 @@
+{
+    "ai_hub": {
+        "greeting": "शुभ संध्या",
+        "help_prompt": "CivicLens आज कैसे मदद कर सकता है?",
+        "placeholder": "CivicLens को संदेश भेजें..."
+    }
+}

@@ -324,7 +324,36 @@ export function WorkerDashboard() {
                   <Headline level={1} className="text-3xl text-tertiary">{activeJobs} Active</Headline>
                 </div>
               </div>
-              <button className="w-full h-14 bg-gradient-to-r from-primary-container to-secondary-container rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+              <button 
+                onClick={() => {
+                  const locations = workerJobs.filter(j => j.latitude && j.longitude);
+                  if (locations.length === 0) {
+                    alert("No active locations to route to.");
+                    return;
+                  }
+                  
+                  // Google Maps Directions API URL format
+                  let url = "https://www.google.com/maps/dir/?api=1";
+                  
+                  // Use first job as origin if geolocation isn't immediately available (for simplicity)
+                  const origin = `${locations[0].latitude},${locations[0].longitude}`;
+                  url += `&origin=${origin}`;
+                  
+                  if (locations.length > 1) {
+                    const destination = `${locations[locations.length - 1].latitude},${locations[locations.length - 1].longitude}`;
+                    url += `&destination=${destination}`;
+                    
+                    if (locations.length > 2) {
+                      const waypoints = locations.slice(1, -1).map(l => `${l.latitude},${l.longitude}`).join('|');
+                      url += `&waypoints=${waypoints}`;
+                    }
+                  } else {
+                    url += `&destination=${origin}`; // Single point
+                  }
+                  
+                  window.open(url, "_blank");
+                }}
+                className="w-full h-14 bg-gradient-to-r from-primary-container to-secondary-container rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-on-primary" style={{ fontVariationSettings: "'FILL' 1" }}>route</span>
                 <span className="font-headline-md text-[18px] font-bold text-on-primary">Start Optimized Route</span>
               </button>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CivicLens" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">#060e20</item>
+        <item name="colorPrimaryDark">#060e20</item>
+        <item name="colorAccent">#6366f1</item>
+        <item name="android:windowBackground">#060e20</item>
+    </style>
+</resources>

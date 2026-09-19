@@ -106,7 +106,7 @@ export function MapDashboard() {
   const { user } = useAuth();
   
   // Layer Selection State
-  const [activeLayer, setActiveLayer] = useState<MapLayerType>("HOTSPOTS");
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>("DEMANDS");
   const [searchQuery, setSearchQuery] = useState("");
   
   // Selected entity for Drawer/Popup
@@ -280,7 +280,7 @@ export function MapDashboard() {
           })}
 
           {/* LAYER 2: NORMALIZED DEMANDS */}
-          {activeLayer === "DEMANDS" && demands.map((d: NormalizedDemand) => {
+          {activeLayer === "DEMANDS" && demands.filter((d: NormalizedDemand) => d.lat != null && d.lng != null).map((d: NormalizedDemand) => {
             const { type, colorObj } = getCategoryIcon(d.category);
             return (
               <Marker 

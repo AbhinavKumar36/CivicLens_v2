@@ -120,6 +120,7 @@ db.exec(`
     last_observed_at TEXT
   );
 
+  DROP TABLE IF EXISTS demand_hotspots;
   CREATE TABLE IF NOT EXISTS demand_hotspots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ward_id TEXT NOT NULL,

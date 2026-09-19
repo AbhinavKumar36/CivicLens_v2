@@ -1,0 +1,11 @@
+{
+    "ai_hub": {
+        "greeting": "Good evening",
+        "help_prompt": "How can CivicLens help today?",
+        "placeholder": "Message CivicLens..."
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "report_issue": "Report Issue"
+    }
+}

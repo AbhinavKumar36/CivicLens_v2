@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslation } from 'react-i18next';
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Headline, BodyText, Label } from "@/components/atoms/Typography";
 import { getGeminiChatSession } from "@/services/gemini";
@@ -22,6 +23,7 @@ You are professional, concise, and helpful. Always format your responses using M
 If a user reports an issue, guide them on what details are needed (location, photos) and then summarize it nicely.`;
 
 export function AIHub() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -90,6 +92,10 @@ export function AIHub() {
 
     try {
       let promptToSend = userMessage.content;
+      
+      // Inject language directive
+      promptToSend += `\n\n[System Context: You must reply to the user in the language corresponding to ISO code: ${i18n.language.toUpperCase()}. Do not reply in English unless the ISO code is EN.]`;
+
       if (userLocation) {
         promptToSend += `\n\n[System Context: The user's current GPS location is Latitude ${userLocation.lat.toFixed(4)}, Longitude ${userLocation.lng.toFixed(4)}. If they ask for their location, tell them this and you can assume they are in Mumbai, India for context.]`;
       }
@@ -147,8 +153,19 @@ export function AIHub() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col relative z-10">
         
-        {/* AI Mode Indicator */}
-        <div className="absolute top-4 right-4 z-20">
+        {/* AI Mode Indicator & Language */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <select 
+            value={i18n.language} 
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="px-2 py-1 bg-surface-container border border-foreground/10 rounded-md text-xs font-medium text-on-surface focus:outline-none"
+          >
+            <option value="en">EN</option>
+            <option value="hi">HI</option>
+            <option value="or">OR</option>
+            <option value="ta">TA</option>
+            <option value="bn">BN</option>
+          </select>
           <span className={cn(
             "px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider rounded-md border backdrop-blur-md flex items-center gap-2",
             aiMode === "3.5" ? "bg-primary/10 border-primary/20 text-primary" : 
@@ -182,8 +199,8 @@ export function AIHub() {
                   </div>
                 </div>
                 <h2 className="font-display-lg text-3xl md:text-5xl text-on-surface leading-tight mb-8">
-                  Good evening, {user?.name?.split(' ')[0] || 'Citizen'}. <br />
-                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">How can CivicLens help today?</span>
+                  {t('ai_hub.greeting')}, {user?.name?.split(' ')[0] || 'Citizen'}. <br />
+                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{t('ai_hub.help_prompt')}</span>
                 </h2>
 
                 {/* Quick Actions Grid */}
@@ -275,22 +292,29 @@ export function AIHub() {
                   placeholder={
                     !isSupported ? "Speech not supported. Type message..." :
                     isListening ? "Listening..." : 
-                    chatSession ? "Message CivicLens..." : "Connecting to AI..."
+                    chatSession ? t('ai_hub.placeholder') : "Connecting to AI..."
                   }
                 />
               </div>
               
-              {/* Language Selector for Speech */}
+              {/* Language Selector for App & Speech */}
               {isSupported && (
                 <select 
-                  value={speechLang}
-                  onChange={(e) => setSpeechLang(e.target.value)}
-                  className="hidden md:block bg-transparent text-xs text-on-surface-variant border-none outline-none cursor-pointer hover:text-primary transition-colors"
-                  title="Speech Language"
+                  value={i18n.language}
+                  onChange={(e) => {
+                    const lang = e.target.value;
+                    i18n.changeLanguage(lang);
+                    const speechMap: Record<string, string> = { 'en': 'en-US', 'hi': 'hi-IN', 'ta': 'ta-IN', 'or': 'or-IN', 'bn': 'bn-IN' };
+                    setSpeechLang(speechMap[lang] || 'en-US');
+                  }}
+                  className="hidden md:block bg-transparent text-xs font-bold text-on-surface-variant border-none outline-none cursor-pointer hover:text-primary transition-colors uppercase"
+                  title="App Language"
                 >
-                  <option value="en-US">EN</option>
-                  <option value="hi-IN">HI</option>
-                  <option value="es-ES">ES</option>
+                  <option value="en" className="uppercase">EN</option>
+                  <option value="hi" className="uppercase">HI</option>
+                  <option value="ta" className="uppercase">TA</option>
+                  <option value="or" className="uppercase">OR</option>
+                  <option value="bn" className="uppercase">BN</option>
                 </select>
               )}
 

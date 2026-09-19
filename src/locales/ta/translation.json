@@ -1,0 +1,7 @@
+{
+    "ai_hub": {
+        "greeting": "மாலை வணக்கம்",
+        "help_prompt": "இன்று CivicLens எவ்வாறு உதவ முடியும்?",
+        "placeholder": "CivicLens க்கு செய்தி அனுப்புக..."
+    }
+}

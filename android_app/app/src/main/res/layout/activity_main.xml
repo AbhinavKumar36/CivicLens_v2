@@ -1,66 +1,229 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="#060e20"
     android:gravity="center_horizontal"
-    android:padding="24dp"
-    android:background="#060e20">
+    android:padding="28dp">
 
+    <!-- Spacer top -->
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <!-- Logo -->
     <ImageView
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="32dp"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
         android:src="@drawable/logo"
-        android:contentDescription="Civic Connect Logo" />
+        android:contentDescription="CivicLens" />
+
+    <!-- App name -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CivicLens"
+        android:textColor="#c0c1ff"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginTop="14dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Civic Connect"
-        android:textColor="#ffffff"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="40dp"/>
+        android:text="Smart City · Bhubaneswar"
+        android:textColor="#6b7280"
+        android:textSize="13sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="56dp" />
 
-    <Button
-        android:id="@+id/btnCitizenProfile"
+    <!-- ─── CITIZEN CARD ─────────────────────────────────────────── -->
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:backgroundTint="#4f46e5"
-        android:textColor="#ffffff"
+        android:layout_height="wrap_content"
+        android:text="CITIZEN PORTAL"
+        android:textColor="#6366f1"
+        android:textSize="10sp"
         android:textStyle="bold"
-        android:text="CITIZEN PROFILE"
-        android:layout_marginBottom="16dp"/>
+        android:letterSpacing="0.15"
+        android:layout_marginBottom="10dp" />
 
-    <Button
-        android:id="@+id/btnWorkerDashboard"
+    <!-- Login as Citizen -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardCitizenLogin"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:backgroundTint="#8b5cf6"
-        android:textColor="#ffffff"
-        android:textStyle="bold"
-        android:text="WORKER DASHBOARD"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="68dp"
+        android:layout_marginBottom="10dp"
+        app:cardBackgroundColor="#0f172a"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+            <TextView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:text="👤"
+                android:textSize="24sp"
+                android:gravity="center" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="14dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Login as Citizen"
+                    android:textColor="#ffffff"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Access your dashboard"
+                    android:textColor="#6b7280"
+                    android:textSize="11sp" />
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="#6366f1"
+                android:textSize="24sp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
-    <Button
-        android:id="@+id/btnEmergencySOS"
+    <!-- Register as Citizen -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardCitizenRegister"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:backgroundTint="#ef4444"
-        android:textColor="#ffffff"
-        android:textStyle="bold"
-        android:text="EMERGENCY SOS"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="68dp"
+        android:layout_marginBottom="32dp"
+        app:cardBackgroundColor="#0f172a"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+            <TextView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:text="✨"
+                android:textSize="24sp"
+                android:gravity="center" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="14dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Citizen Account"
+                    android:textColor="#ffffff"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="New to CivicLens? Register here"
+                    android:textColor="#6b7280"
+                    android:textSize="11sp" />
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="#6366f1"
+                android:textSize="24sp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
-    <Button
-        android:id="@+id/btnMapDashboard"
+    <!-- ─── WORKER CARD ──────────────────────────────────────────── -->
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:backgroundTint="#0ea5e9"
-        android:textColor="#ffffff"
+        android:layout_height="wrap_content"
+        android:text="WORKER PORTAL"
+        android:textColor="#8b5cf6"
+        android:textSize="10sp"
         android:textStyle="bold"
-        android:text="LIVE MAP &amp; PLANNING" />
+        android:letterSpacing="0.15"
+        android:layout_marginBottom="10dp" />
+
+    <!-- Login as Worker -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardWorkerLogin"
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:layout_marginBottom="0dp"
+        app:cardBackgroundColor="#0f172a"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+            <TextView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:text="🔧"
+                android:textSize="24sp"
+                android:gravity="center" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="14dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Login as Worker"
+                    android:textColor="#ffffff"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tasks · SOS alerts · Field updates"
+                    android:textColor="#6b7280"
+                    android:textSize="11sp" />
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="#8b5cf6"
+                android:textSize="24sp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Spacer bottom -->
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <!-- Footer -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bhubaneswar Municipal Corporation · Smart City Initiative"
+        android:textColor="#374151"
+        android:textSize="10sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
 
 </LinearLayout>

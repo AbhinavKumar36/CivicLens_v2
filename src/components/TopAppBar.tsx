@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { cn } from "@/utils/utils"
+import { useTranslation } from 'react-i18next'
 
 function timeAgo(dateInput: string | Date) {
   const date = new Date(dateInput);
@@ -23,6 +24,7 @@ export function TopAppBar() {
   const { user, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const { theme, setTheme } = useTheme();
+  const { i18n } = useTranslation();
   
   const [showDropdown, setShowDropdown] = useState(false);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
@@ -134,6 +136,8 @@ export function TopAppBar() {
             )}
           </AnimatePresence>
         </div>
+
+
 
         {/* Notification Bell */}
         <div className="relative" ref={dropdownRef}>
