@@ -44,6 +44,9 @@ export function ReportIssue() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAnonymous, setIsAnonymous] = useState(false)
+  const [imageAnalysisError, setImageAnalysisError] = useState<string | null>(null)
+  const [editedSummary, setEditedSummary] = useState("")
+  const [isEditedByCitizen, setIsEditedByCitizen] = useState(false)
   
   const { latitude: userLat, longitude: userLng } = useGeolocation()
 
@@ -57,6 +60,7 @@ export function ReportIssue() {
     if (!file.type.startsWith("image/")) return
     setFileName(file.name)
     setReportData(null)
+    setImageAnalysisError(null)
 
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -75,13 +79,29 @@ export function ReportIssue() {
   const handleRunImageAnalysis = async () => {
     if (!imagePreview) return
     setIsAnalyzingImage(true)
+    setImageAnalysisError(null)
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY
       if (!apiKey) throw new Error("No API key")
 
-      const base64Data = imagePreview.split(",")[1]
-      const mimeType = imagePreview.split(";")[0].split(":")[1]
+      const base64Data = imagePreview.includes(",") ? imagePreview.split(",")[1] : imagePreview
+      const mimeType = imagePreview.includes(";") ? imagePreview.split(";")[0].split(":")[1] : "image/jpeg"
+
+      // 1. Mandatory AI-Generated Image Screening Check
+      const authResult = await imageAuthenticityService.checkImage(base64Data, mimeType)
+      if (authResult.status === "LIKELY_AI") {
+        const errorMsg = authResult.reason || "AI-Generated Image Detected: CivicLens strictly requires authentic, camera-captured photographic evidence. AI-generated, synthetic, or digitally altered images are prohibited."
+        setImageAnalysisError(errorMsg)
+        addNotification({
+          title: "AI Image Rejected",
+          message: "Uploaded image detected as AI-generated/synthetic. Submission blocked.",
+          type: "error",
+          group: "system"
+        })
+        setIsAnalyzingImage(false)
+        return
+      }
 
       const requestBody = JSON.stringify({
         contents: [{
@@ -93,38 +113,49 @@ export function ReportIssue() {
         generationConfig: { responseMimeType: "application/json" }
       });
 
-      let response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: requestBody }
-      )
+      const candidateModels = [
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-flash-latest'
+      ];
 
-      if (!response.ok) {
-        console.warn(`Gemini 3.5 Flash failed (HTTP ${response.status}). Falling back to 2.5 Flash...`)
-        response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-          { method: "POST", headers: { "Content-Type": "application/json" }, body: requestBody }
-        )
+      let parsed: ReportData | null = null;
+      for (const model of candidateModels) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: requestBody }
+          )
+
+          if (response.ok) {
+            const data = await response.json()
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || ""
+            let cleaned = rawText.trim()
+            if (cleaned.startsWith("```json")) {
+              cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")
+            } else if (cleaned.startsWith("```")) {
+              cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "")
+            }
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+            parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
+            break
+          }
+        } catch (mErr) {
+          console.warn(`Model ${model} failed:`, mErr)
+        }
       }
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      
-      const data = await response.json()
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || ""
-      let cleaned = rawText.trim()
-      if (cleaned.startsWith("```json")) {
-        cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")
-      } else if (cleaned.startsWith("```")) {
-        cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "")
+      if (!parsed) {
+        throw new Error("All Gemini Vision models failed")
       }
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-      const parsed: ReportData = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
       
       setReportData({ ...parsed, image: imagePreview })
       setEditedSummary(parsed.summary)
       setIsEditedByCitizen(false)
       addNotification({
         title: "Image Diagnostic Complete",
-        message: `Gemini identified "${parsed.summary}" classified under ${parsed.category}.`,
+        message: `Identified "${parsed.summary}" classified under ${parsed.category}.`,
         type: "success",
         group: "system"
       })
@@ -158,7 +189,6 @@ export function ReportIssue() {
       let lat = userLat || null;
       let lng = userLng || null;
       const lower = (reportData.summary || "").toLowerCase();
-      // Only apply specific keyword overrides if coords weren't explicitly provided, but avoid using a default fallback
       if (!lat && !lng) {
         if (lower.includes("bhouma") || lower.includes("unit 4") || lower.includes("unit-4")) {
           lat = 20.2785; lng = 85.8324;
@@ -382,7 +412,7 @@ export function ReportIssue() {
                </div>
              )}
            </motion.div>
-          ) : reportMode === "manual" && !reportData ? (
+          ) : reportMode === "manual" ? (
             <motion.div
               key="manual"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -392,9 +422,22 @@ export function ReportIssue() {
             >
               <ManualReportForm
                 onSubmit={handleManualSubmit}
-                onCancel={() => navigate("/dashboard")}
+                onCancel={() => {
+                  if (reportData) {
+                    setReportMode("image");
+                  } else {
+                    navigate("/dashboard");
+                  }
+                }}
                 isSubmitting={isSubmitting}
                 showAnonymityInfo={false}
+                initialData={reportData ? {
+                  category: reportData.category,
+                  severity: reportData.severity,
+                  summary: reportData.summary,
+                  description: reportData.summary,
+                  image: reportData.image
+                } : undefined}
               />
               <div className="mt-6 flex items-center gap-3">
                 <Label className="text-on-surface font-semibold block">Report Anonymously</Label>
@@ -475,6 +518,27 @@ export function ReportIssue() {
                   </div>
                 )}
               </div>
+
+              {/* AI Detection Error Alert */}
+              {imageAnalysisError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 rounded-2xl bg-red-500/15 border-2 border-red-500/40 text-red-300 flex items-start gap-4 shadow-xl text-left"
+                >
+                  <span className="material-symbols-outlined text-3xl text-red-400 shrink-0 mt-0.5">gpp_bad</span>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-bold text-red-200">AI-Generated Image Detected</h4>
+                      <span className="text-[10px] bg-red-500/30 text-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border border-red-400/30">Submission Blocked</span>
+                    </div>
+                    <p className="text-xs text-red-200/90 leading-relaxed">{imageAnalysisError}</p>
+                    <p className="text-[11px] text-red-300/80 font-medium pt-1">
+                      CivicLens strictly requires authentic real-world photographic evidence. AI-generated, synthetic, or digitally manipulated photos cannot be submitted.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Run Analysis Button */}
               <Button
@@ -594,9 +658,9 @@ export function ReportIssue() {
 
                 <div className="mt-8 flex gap-4">
                   <Button variant="outline" className="flex-1" onClick={() => {
-                    setReportData(null);
+                    setReportMode("manual");
                   }}>
-                    Edit / Go Back
+                    Edit Manually
                   </Button>
                   <Button 
                     className="flex-1 bg-gradient-to-r from-primary to-secondary text-on-primary font-bold shadow-lg shadow-primary/20"

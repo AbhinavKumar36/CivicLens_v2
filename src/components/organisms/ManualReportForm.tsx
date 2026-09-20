@@ -1,9 +1,11 @@
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import { GlassPanel } from "@/components/ui/GlassPanel"
 import { BodyText, Label } from "@/components/atoms/Typography"
 import { Button } from "@/components/atoms/Button"
 import { cn } from "@/utils/utils"
+import { imageAuthenticityService } from "@/services/imageAuthenticityService"
+import { imageMatchService } from "@/services/imageMatchService"
 
 export const CATEGORIES = [
   { id: "infrastructure", icon: "construction", label: "Infrastructure", color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
@@ -21,6 +23,15 @@ export const SEVERITY_LEVELS = [
   { id: "low", label: "Low", desc: "Minor issue, not time-sensitive", color: "border-green-500 bg-green-500/10 text-green-400" },
 ]
 
+export interface ManualReportInitialData {
+  category?: string;
+  severity?: string;
+  description?: string;
+  summary?: string;
+  location?: string;
+  image?: string | null;
+}
+
 interface ManualReportFormProps {
   onSubmit: (data: { category: string; severity: string; description: string; location: string; image: string | null }) => void;
   onCancel: () => void;
@@ -28,6 +39,7 @@ interface ManualReportFormProps {
   submitLabel?: string;
   submitIcon?: string;
   showAnonymityInfo?: boolean;
+  initialData?: ManualReportInitialData;
 }
 
 export function ManualReportForm({
@@ -37,15 +49,30 @@ export function ManualReportForm({
   submitLabel = "Submit Report",
   submitIcon = "send",
   showAnonymityInfo = false,
+  initialData,
 }: ManualReportFormProps) {
-  const [category, setCategory] = useState("")
-  const [severity, setSeverity] = useState("")
-  const [description, setDescription] = useState("")
-  const [location, setLocation] = useState("")
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [category, setCategory] = useState(initialData?.category?.toLowerCase() || "")
+  const [severity, setSeverity] = useState(initialData?.severity?.toLowerCase() || "")
+  const [description, setDescription] = useState(initialData?.description || initialData?.summary || "")
+  const [location, setLocation] = useState(initialData?.location || "")
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image || null)
   const [isDetectingLocation, setIsDetectingLocation] = useState(false)
+  const [matchError, setMatchError] = useState<string | null>(null)
+  const [isVerifyingImage, setIsVerifyingImage] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.category) setCategory(initialData.category.toLowerCase());
+      if (initialData.severity) setSeverity(initialData.severity.toLowerCase());
+      if (initialData.description || initialData.summary) {
+        setDescription(initialData.description || initialData.summary || "");
+      }
+      if (initialData.location) setLocation(initialData.location);
+      if (initialData.image) setImagePreview(initialData.image);
+    }
+  }, [initialData]);
 
   const canSubmit = category && severity && description.trim().length >= 10
 
@@ -71,6 +98,7 @@ export function ManualReportForm({
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) return
+    setMatchError(null)
     const reader = new FileReader()
     reader.onload = (e) => {
       setImagePreview(e.target?.result as string)
@@ -78,8 +106,38 @@ export function ManualReportForm({
     reader.readAsDataURL(file)
   }
 
-  const handleSubmit = () => {
-    if (!canSubmit) return
+  const handleSubmit = async () => {
+    if (!canSubmit || isVerifyingImage || isSubmitting) return
+    setMatchError(null)
+
+    if (imagePreview) {
+      setIsVerifyingImage(true)
+      try {
+        const base64Data = imagePreview.includes(",") ? imagePreview.split(",")[1] : imagePreview
+        const mimeType = imagePreview.includes(";") ? imagePreview.split(";")[0].split(":")[1] : "image/jpeg"
+
+        // 1. Check AI Authenticity Screening
+        const authResult = await imageAuthenticityService.checkImage(base64Data, mimeType)
+        if (authResult.status === "LIKELY_AI") {
+          setMatchError(`AI-Generated Image Detected: ${authResult.reason || "CivicLens strictly requires authentic, camera-captured photographic evidence. AI-generated, synthetic, or digitally manipulated images are prohibited."}`)
+          setIsVerifyingImage(false)
+          return
+        }
+
+        // 2. Check Image vs Reported Issue Cross-Validation
+        const matchResult = await imageMatchService.verifyMatch(base64Data, mimeType, category, description)
+        if (matchResult && matchResult.matches === false) {
+          setMatchError(`Photo Evidence Mismatch: ${matchResult.reason} Please attach a photo that shows the reported issue, or edit your description to reflect the attached image.`)
+          setIsVerifyingImage(false)
+          return
+        }
+      } catch (err) {
+        console.warn("Evidence verification error:", err)
+      } finally {
+        setIsVerifyingImage(false)
+      }
+    }
+
     onSubmit({ category, severity, description, location, image: imagePreview })
   }
 
@@ -110,7 +168,8 @@ export function ManualReportForm({
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
-              onClick={() => setCategory(cat.id)}
+              type="button"
+              onClick={() => { setCategory(cat.id); setMatchError(null); }}
               className={cn(
                 "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all text-center",
                 category === cat.id 
@@ -132,6 +191,7 @@ export function ManualReportForm({
           {SEVERITY_LEVELS.map(sev => (
             <button
               key={sev.id}
+              type="button"
               onClick={() => setSeverity(sev.id)}
               className={cn(
                 "p-4 rounded-xl border-l-4 flex items-center gap-4 transition-all text-left",
@@ -154,7 +214,7 @@ export function ManualReportForm({
         <Label className="text-foreground font-semibold mb-3 block">Describe the issue in detail</Label>
         <textarea
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={e => { setDescription(e.target.value); setMatchError(null); }}
           placeholder="Provide as much detail as possible — what you saw, when, where, and any relevant context..."
           rows={5}
           className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl p-4 text-sm text-foreground placeholder:text-on-surface-variant/40 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
@@ -239,20 +299,40 @@ export function ManualReportForm({
         </div>
       </div>
 
+      {/* Verification Error Notice */}
+      {matchError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-start gap-3 shadow-lg"
+        >
+          <span className="material-symbols-outlined text-2xl text-red-400 shrink-0 mt-0.5">gpp_bad</span>
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-red-300">Evidence Screening Rejected</h4>
+            <p className="text-xs leading-relaxed text-red-200/90">{matchError}</p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Submit */}
       <div className="flex gap-4 pt-4">
-        <Button variant="outline" className="flex-1" onClick={onCancel}>Cancel</Button>
+        <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isVerifyingImage || isSubmitting}>Cancel</Button>
         <Button
           className={cn(
             "flex-1 font-bold shadow-lg transition-all",
-            canSubmit 
+            canSubmit && !isVerifyingImage && !isSubmitting
               ? "bg-gradient-to-r from-tertiary to-secondary text-on-primary" 
               : "bg-foreground/10 text-on-surface-variant cursor-not-allowed"
           )}
           onClick={handleSubmit}
-          disabled={!canSubmit || isSubmitting}
+          disabled={!canSubmit || isSubmitting || isVerifyingImage}
         >
-          {isSubmitting ? (
+          {isVerifyingImage ? (
+            <>
+              <span className="material-symbols-outlined animate-spin mr-2 text-base">verified</span>
+              Verifying Evidence...
+            </>
+          ) : isSubmitting ? (
             <>
               <span className="material-symbols-outlined animate-spin mr-2 text-base">sync</span>
               Submitting...

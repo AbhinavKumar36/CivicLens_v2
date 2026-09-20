@@ -11,6 +11,7 @@ export default defineConfig(({ command }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     host: true,

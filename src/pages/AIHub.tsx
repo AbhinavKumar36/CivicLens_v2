@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useTranslation } from 'react-i18next';
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Headline, BodyText, Label } from "@/components/atoms/Typography";
 import { getGeminiChatSession } from "@/services/gemini";
@@ -23,7 +22,6 @@ You are professional, concise, and helpful. Always format your responses using M
 If a user reports an issue, guide them on what details are needed (location, photos) and then summarize it nicely.`;
 
 export function AIHub() {
-  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");

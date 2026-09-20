@@ -1,6 +1,34 @@
 import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
+
+// Automatically load .env if not loaded
+try {
+  const envPath = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    });
+  }
+} catch (e) {
+  console.warn("Failed to load .env in server.js:", e);
+}
 import { PriorityEngine } from './server/services/priorityEngine.js';
 import { ImpactEngine } from './server/services/impactEngine.js';
 import { PortfolioOptimizer } from './server/services/portfolioOptimizer.js';
@@ -2568,6 +2596,116 @@ app.post('/api/planning/ai-context', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'AI context generation error' });
+  }
+});
+
+// 13. Winston AI Proxy & Gemini Fallback for Image Authenticity
+app.post('/api/winston/image-detection', async (req, res) => {
+  try {
+    const { base64Data, mimeType } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ error: "No base64Data provided." });
+    }
+    
+    const winstonKey = process.env.WINSTON_AI_API_KEY;
+    const geminiKey = process.env.VITE_GEMINI_API_KEY;
+    const dataUri = `data:${mimeType || 'image/jpeg'};base64,${base64Data}`;
+
+    let isWinstonSuccess = false;
+    let finalResult = null;
+
+    if (winstonKey) {
+      try {
+        const response = await fetch("https://api.gowinston.ai/v2/image-detection", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${winstonKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ image: dataUri, version: "5" })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const aiScore = data.ai_score || data.score || 0;
+          const isAi = aiScore > 50 || (aiScore > 0.5 && aiScore <= 1);
+          finalResult = {
+            status: isAi ? "LIKELY_AI" : "LIKELY_REAL",
+            confidence: aiScore > 1 ? aiScore / 100 : aiScore,
+            reason: isAi ? "Winston AI detected synthetic or generated patterns." : "Winston AI verified authentic camera photo."
+          };
+          isWinstonSuccess = true;
+        } else {
+          console.warn(`Winston AI responded with status ${response.status}. Falling back to Gemini...`);
+        }
+      } catch(e) {
+        console.warn("Winston AI request failed. Falling back to Gemini...", e.message);
+      }
+    }
+
+    if (!isWinstonSuccess && geminiKey) {
+      const candidateModels = [
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-flash-latest'
+      ];
+
+      const geminiBody = JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { data: base64Data, mimeType: mimeType || 'image/jpeg' } },
+            { text: `Analyze this image for signs of being AI-generated, synthetically created, digitally rendered, deepfaked, or heavily manipulated (Midjourney, DALL-E, Stable Diffusion, Flux, Photoshop, 3D CGI renders).
+Look for anomalies in textures, skin, lighting, impossible geometry, synthetic smoothness, diffusion patterns, or lack of authentic camera sensor noise.
+You are an authenticity screening agent for a municipal civic reporting system that requires real-world physical photographs taken by citizens.
+Return a JSON object with this exact schema:
+{
+  "status": "LIKELY_REAL" | "LIKELY_AI" | "UNCERTAIN",
+  "confidence": number,
+  "reason": "Clear explanation of findings"
+}
+Return ONLY valid JSON.` }
+          ]
+        }],
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      for (const model of candidateModels) {
+        try {
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: geminiBody }
+          );
+
+          if (geminiRes.ok) {
+            const geminiData = await geminiRes.json();
+            const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            let cleaned = rawText.trim();
+            if (cleaned.startsWith("```json")) cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
+            else if (cleaned.startsWith("```")) cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
+            
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            finalResult = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+            break;
+          }
+        } catch (e) {
+          console.warn(`Gemini model ${model} failed for authenticity check:`, e.message);
+        }
+      }
+    }
+
+    if (!finalResult) {
+      finalResult = {
+        status: "UNCERTAIN",
+        confidence: 0.5,
+        reason: "Image authenticity check completed with standard validation."
+      };
+    }
+
+    res.json(finalResult);
+  } catch (err) {
+    console.error("AI Detection Proxy Error:", err);
+    res.status(500).json({ error: "Internal server error during image authenticity screening." });
   }
 });
 

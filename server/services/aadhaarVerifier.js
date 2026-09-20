@@ -78,9 +78,7 @@ startxref
   };
 }
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 
 export async function verifyAadhaarDocument(fileBuffer, fullName, dateOfBirth) {
   if (!fullName || !dateOfBirth) {
@@ -114,10 +112,10 @@ export async function verifyAadhaarDocument(fileBuffer, fullName, dateOfBirth) {
 
   // 3. Attempt decryption using pdf-parse with the derived password
   try {
-    // If it's encrypted, pdf-parse will use the password. If it's wrong, it throws an error.
-    // If it's our unencrypted mock PDF, it will just parse successfully.
-    await pdfParse(fileBuffer, { max: 1, password: derivedPassword });
+    const pdf = new PDFParse({ data: fileBuffer, password: derivedPassword });
+    await pdf.getInfo();
   } catch (err) {
+    console.error("PDF Parse error:", err);
     // pdf.js throws a PasswordException if the password is wrong or missing for an encrypted PDF
     return {
       isValid: false,
