@@ -1,3 +1,5 @@
+import { getGeminiApiKey } from "./gemini";
+
 export interface MatchResult {
   matches: boolean;
   reason: string;
@@ -6,7 +8,7 @@ export interface MatchResult {
 export const imageMatchService = {
   verifyMatch: async (base64Data: string, mimeType: string, category: string, description: string): Promise<MatchResult> => {
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = getGeminiApiKey();
       if (!apiKey) {
         return { matches: true, reason: "Verification skipped (No API Key)" };
       }

@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useGeolocation } from "@/hooks/useGeolocation"
 import { VoiceReportForm } from "@/components/organisms/VoiceReportForm"
 import { imageAuthenticityService } from "@/services/imageAuthenticityService"
+import { getGeminiApiKey } from "@/services/gemini"
 
 interface ReportData {
   category: string
@@ -82,7 +83,7 @@ export function ReportIssue() {
     setImageAnalysisError(null)
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+      const apiKey = getGeminiApiKey()
       if (!apiKey) throw new Error("No API key")
 
       const base64Data = imagePreview.includes(",") ? imagePreview.split(",")[1] : imagePreview

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",
     "build": "vite build",
+    "predeploy": "npm run build && node -e \"import('fs').then(fs => fs.copyFileSync('dist/index.html', 'dist/404.html'))\"",
+    "deploy": "gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -56,6 +58,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.5.2",
     "concurrently": "^10.0.3",
+    "gh-pages": "^6.3.0",
     "json-server": "^1.0.0-beta.15",
     "oxlint": "^1.71.0",
     "postcss": "^8.5.16",

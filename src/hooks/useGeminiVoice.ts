@@ -1,8 +1,6 @@
 import { useState, useRef } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(API_KEY);
+import { getGeminiApiKey } from '@/services/gemini';
 
 // Try newest models first, fall back to proven audio model
 const AUDIO_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
@@ -49,6 +47,12 @@ Respond ONLY with a valid JSON object — no markdown fences, no commentary:
 }`;
 
   let lastError: any;
+
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("No Gemini API key available");
+  }
+  const genAI = new GoogleGenerativeAI(apiKey);
 
   for (const modelName of AUDIO_MODELS) {
     try {

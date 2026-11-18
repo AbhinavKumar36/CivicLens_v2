@@ -1,9 +1,13 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { ISSUE_REPORT_SYSTEM_PROMPT } from "../constants/prompts";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-
-const genAI = new GoogleGenerativeAI(API_KEY);
+export const getGeminiApiKey = (): string => {
+  if (typeof window !== "undefined") {
+    const customKey = localStorage.getItem("civiclens_gemini_api_key");
+    if (customKey && customKey.trim()) return customKey.trim();
+  }
+  return import.meta.env.VITE_GEMINI_API_KEY || "";
+};
 
 const safetySettings = [
   {
@@ -225,8 +229,10 @@ class FallbackChatSession {
     this.systemInstruction = systemInstruction;
     this.mockSession = new MockChatSession(systemInstruction);
 
-    if (API_KEY && API_KEY.length > 20) {
+    const apiKey = getGeminiApiKey();
+    if (apiKey && apiKey.length > 20) {
       try {
+        const genAI = new GoogleGenerativeAI(apiKey);
         // Primary: Gemini 3.5 Flash
         const model35 = genAI.getGenerativeModel({
           model: "gemini-3.5-flash",

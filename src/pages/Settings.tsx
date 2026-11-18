@@ -170,6 +170,52 @@ export function Settings() {
           </div>
         </div>
 
+        {/* AI & Gemini Configuration */}
+        <div>
+          <div className="flex items-center gap-3 mb-6 border-b border-foreground/5 pb-4 mt-4">
+            <span className="material-symbols-outlined text-tertiary text-2xl">neurology</span>
+            <h2 className="font-display-lg text-xl font-bold">AI & Model Configuration</h2>
+          </div>
+
+          <div className="bg-surface-container/50 p-6 rounded-2xl border border-foreground/5 flex flex-col gap-4">
+            <div>
+              <Label className="text-on-surface text-base mb-1 block">Google Gemini API Key (Optional)</Label>
+              <BodyText className="text-xs text-on-surface-variant">
+                Enter your personal Gemini API key for live multimodal analysis. If left empty, CivicLens runs in offline mock and local Whisper AI mode with zero external dependency.
+              </BodyText>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="password"
+                placeholder="AIzaSy... or leave blank for offline mock mode"
+                defaultValue={typeof window !== "undefined" ? localStorage.getItem("civiclens_gemini_api_key") || "" : ""}
+                onChange={(e) => {
+                  if (typeof window !== "undefined") {
+                    if (e.target.value.trim()) {
+                      localStorage.setItem("civiclens_gemini_api_key", e.target.value.trim());
+                    } else {
+                      localStorage.removeItem("civiclens_gemini_api_key");
+                    }
+                  }
+                }}
+                className="flex-1 bg-surface-variant/40 border border-foreground/10 rounded-xl px-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem("civiclens_gemini_api_key");
+                    window.location.reload();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-foreground/5 hover:bg-foreground/10 border border-foreground/10 text-on-surface transition-colors"
+              >
+                Clear Key
+              </button>
+            </div>
+          </div>
+        </div>
+
       </section>
     </div>
   );
