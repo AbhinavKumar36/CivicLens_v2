@@ -1,0 +1,1 @@
+import{n as e,t}from"./jsx-runtime-D8nDyRPw.js";import{u as n}from"./index-a-5gA4so.js";e();var r=t();function i({className:e,hover:t,children:i,...a}){return(0,r.jsx)(`div`,{className:n(`glass-panel rounded-2xl transition-all`,t&&`glass-panel-hover`,e),...a,children:i})}export{i as t};
